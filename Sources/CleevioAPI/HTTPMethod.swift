@@ -29,6 +29,7 @@ public struct HTTPMethod: Equatable, Hashable, ExpressibleByStringLiteral {
 
     public let rawValue: String
 
+    @inlinable
     public init(stringLiteral rawValue: String) {
         self.rawValue = rawValue
     }
