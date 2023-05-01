@@ -7,9 +7,7 @@
 
 import Foundation
 
-public struct BaseAPIRouter<RequestBody: Encodable>: APIRouter {
-    public typealias Response = Data
-    
+public struct BaseAPIRouter<RequestBody: Encodable, Response: Decodable>: APIRouter {
     public let defaultHeaders: Headers
     public let hostname: URL
     public let jsonDecoder: JSONDecoder
@@ -48,7 +46,7 @@ public struct BaseAPIRouter<RequestBody: Encodable>: APIRouter {
     }
 }
 
-public extension BaseAPIRouter<EmptyCodable> {
+public extension BaseAPIRouter where RequestBody == EmptyCodable {
     init(defaultHeaders: Headers = [:],
                 hostname: URL,
                 jsonDecoder: JSONDecoder = JSONDecoder(),

@@ -11,7 +11,7 @@ import CleevioAPI
 final class APIRouterTests: XCTestCase {
 
     func testDefaultAPIRouter() throws {
-           let router = BaseAPIRouter(
+           let router = BaseAPIRouter<EmptyCodable, Data>(
                hostname: URL(string: "https://example.com")!,
                path: "/test",
                authType: .none
@@ -31,7 +31,7 @@ final class APIRouterTests: XCTestCase {
     }
     
     func testAsURL() throws {
-        let router = BaseAPIRouter<String>(
+        let router = BaseAPIRouter<String, Data>(
             hostname: URL(string: "https://example.com")!,
             path: "/api/test",
             authType: .none,
@@ -44,7 +44,7 @@ final class APIRouterTests: XCTestCase {
     }
     
     func testAsURLRequest() throws {
-        let router = BaseAPIRouter<String>(
+        let router = BaseAPIRouter<String, Data>(
             hostname: URL(string: "https://example.com")!,
             path: "/api/test",
             authType: .none,
@@ -67,7 +67,7 @@ final class APIRouterTests: XCTestCase {
     }
     
     func testAsURLWithAdditionalHeadersAndQueryItems() throws {
-        let router = BaseAPIRouter(
+        let router = BaseAPIRouter<EmptyCodable, Data>(
             defaultHeaders: ["header1":"value1", "header2":"value2"],
             hostname: URL(string: "https://example.com")!,
             path: "/users",
@@ -79,11 +79,11 @@ final class APIRouterTests: XCTestCase {
         let url = try router.asURL()
         
         XCTAssertTrue(url.absoluteString.contains("https://example.com/users"))
-        XCTAssertTrue(url.absoluteString.contains("?page=1&perPage=20") || url.absoluteString.contains("?page=1&perPage=20"))
+        XCTAssertTrue(url.absoluteString.contains("?page=1&perPage=20") || url.absoluteString.contains("?perPage=20&page=1"))
     }
 
     func testAsURLRequstWithAdditionalHeadersAndQueryItems() throws {
-        let router = BaseAPIRouter<EmptyCodable>(
+        let router = BaseAPIRouter<EmptyCodable, Data>(
             defaultHeaders: ["header1":"value1", "header2":"value2"],
             hostname: URL(string: "https://example.com")!,
             path: "/users",
@@ -103,7 +103,7 @@ final class APIRouterTests: XCTestCase {
     }
 
     func testAsURLRequstWithOverridingDefaultHeaderWithAdditionalHeaders() throws {
-        let router = BaseAPIRouter<EmptyCodable>(
+        let router = BaseAPIRouter<EmptyCodable, Data>(
             defaultHeaders: ["header1":"value1", "header2":"value2"],
             hostname: URL(string: "https://example.com")!,
             path: "/users",
@@ -130,7 +130,7 @@ final class APIRouterTests: XCTestCase {
         }
 
         let createUserRequest = CreateUserRequest(name: "John Doe", email: "johndoe@example.com", password: "password")
-        let router = BaseAPIRouter<CreateUserRequest>(hostname: URL(string: "https://example.com")!, path: "/users", authType: .none, method: .post, body: createUserRequest)
+        let router = BaseAPIRouter<CreateUserRequest, Data>(hostname: URL(string: "https://example.com")!, path: "/users", authType: .none, method: .post, body: createUserRequest)
 
         let expectedURL = URL(string: "https://example.com/users")!
         let urlRequest = try router.asURLRequest()
@@ -151,7 +151,7 @@ final class APIRouterTests: XCTestCase {
         }
 
         let updateUserRequest = UpdateUserRequest(id: 1, name: "John Doe", email: "johndoe@example.com", password: "password")
-        let router = BaseAPIRouter<UpdateUserRequest>(hostname: URL(string: "https://example.com")!, path: "/users/1", authType: .none, method: .put, body: updateUserRequest, cachePolicy: .useProtocolCachePolicy)
+        let router = BaseAPIRouter<UpdateUserRequest, Data>(hostname: URL(string: "https://example.com")!, path: "/users/1", authType: .none, method: .put, body: updateUserRequest, cachePolicy: .useProtocolCachePolicy)
 
         let urlRequest = try router.asURLRequest()
 
