@@ -12,9 +12,14 @@ let package = Package(
         .library(
             name: "CleevioAPI",
             targets: ["CleevioAPI"]),
+        .library(
+            name: "CleevioAuthentication",
+            targets: ["CleevioAuthentication"]
+        )
     ],
     dependencies: [
         .package(url: "git@gitlab.cleevio.cz:cleevio-dev-ios/CleevioCore", .upToNextMajor(from: .init(2, 0, 0))),
+        .package(url: "git@gitlab.cleevio.cz:cleevio-dev-ios/CleevioStorage", .upToNextMajor(from: .init(0, 1, 3)))
     ],
     targets: [
         .target(
@@ -22,8 +27,17 @@ let package = Package(
             dependencies: [
                 .product(name: "CleevioCore", package: "CleevioCore")
             ]),
+        .target(
+            name: "CleevioAuthentication",
+            dependencies: [
+                "CleevioAPI",
+                "CleevioStorage"
+            ]),
         .testTarget(
             name: "CleevioAPITests",
-            dependencies: ["CleevioAPI"]),
+            dependencies: [
+                "CleevioAPI",
+                "CleevioAuthentication"
+            ]),
     ]
 )

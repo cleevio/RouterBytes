@@ -36,8 +36,8 @@ public typealias Headers = [String: String]
  */
 public protocol APIRouter<RequestBody> {
     associatedtype Response: Decodable
-    associatedtype AuthorizationType
-    associatedtype RequestBody: Encodable
+    associatedtype AuthorizationType = CleevioAPI.AuthorizationType
+    associatedtype RequestBody: Encodable = EmptyCodable
 
     // Properties to be specified within the project APIRouter protocol
     /// The default headers for the API endpoint.
