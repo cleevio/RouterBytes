@@ -9,14 +9,16 @@ import Foundation
 
 
 /**
-`APIService` is a class responsible for making network requests and decoding responses. It uses an implementation of `NetworkingServiceType` protocol to actually perform the network requests.
+ `APIService` is a class responsible for making network requests and decoding responses. It uses an implementation of `NetworkingServiceType` protocol to actually perform the network requests.
 
-To use `APIService`, subclass it and override its methods as needed. The `getData` method is the most commonly used method for fetching data from the network. You pass an implementation of `APIRouter` to `getData` and it returns the decoded `APIRouter.Response`.
+ To use `APIService`, subclass it and override its methods as needed. The `getData` method is the most commonly used method for fetching data from the network. You pass an implementation of `APIRouter` to `getData` and it returns the decoded `APIRouter.Response`.
 
-`APIService` also has an optional `APIServiceEventDelegate` to which it reports the progress of the requests.
+ `APIService` also has an optional `APIServiceEventDelegate` to which it reports the progress of the requests.
+
+ The generic `AuthorizationType` is the authorization type used by the network requests. It is specified when creating an instance of `APIService`.
 */
 @available(macOS 12.0, *)
-open class APIService {
+open class APIService<AuthorizationType> {
     /// The networking service used to perform network requests.
     public final let networkingService: NetworkingServiceType
 
@@ -35,14 +37,16 @@ open class APIService {
 
     /**
      Fetches data from the network using a given router.
-     
+
      This method fetches the data from the network using a `URLRequest` created by the `asURLRequest` method of the given `APIRouter`. The data is then decoded using the `jsonDecoder` property of the router.
      
+     `RouterType.AuthorizationType` must match the `AuthorizationType` of the `APIService` instance.
+
      - Parameter router: The router to use for creating the request.
      - Returns: A decoded response object of type `RouterType.Response`.
-     - Throws: An error if the network request or decoding fails.
+     - Throws: An error if the network request or decoding fails
      */
-    open func getData<RouterType: APIRouter>(from router: RouterType) async throws -> RouterType.Response {
+    open func getData<RouterType: APIRouter>(from router: RouterType) async throws -> RouterType.Response where RouterType.AuthorizationType == AuthorizationType {
         try await getDecoded(from: try await getSignedURLRequest(from: router), decoder: router.jsonDecoder)
     }
 
@@ -51,12 +55,14 @@ open class APIService {
      
      This method creates and signs a `URLRequest` using the `asURLRequest` method of the given `APIRouter`.
      
+     `RouterType.AuthorizationType` must match the `AuthorizationType` of the `APIService` instance.
+     
      - Parameter router: The router to use for creating the request.
      - Returns: A signed `URLRequest` object.
      - Throws: An error if the URLRequest could not be created from APIRouter.
      */
     @inlinable
-    open func getSignedURLRequest(from router: some APIRouter) async throws -> URLRequest {
+    open func getSignedURLRequest<RouterType: APIRouter>(from router: RouterType) async throws -> URLRequest where RouterType.AuthorizationType == AuthorizationType {
         try router.asURLRequest()
     }
 
@@ -71,6 +77,7 @@ open class APIService {
      - Returns: A decoded response object of type `T`.
      - Throws: An error if the network request or decoding fails.
      */
+    @inlinable
     open func getDecoded<T: Decodable>(from request: URLRequest, decoder: JSONDecoder) async throws -> T {
         let data = try await getData(from: request)
         

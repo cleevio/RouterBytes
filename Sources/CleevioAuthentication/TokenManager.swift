@@ -41,7 +41,7 @@ public protocol TokenManagerType<APIToken> {
 @available(macOS 12.0, *)
 public final actor TokenManager<APIToken: CodableAPITokentType, RefreshTokenAPIRouterType: RefreshTokenAPIRouter>: TokenManagerType where APIToken == RefreshTokenAPIRouterType.Response {
     private var refreshingTask: Task<APIToken, Error>?
-    private let apiService: APIService
+    private let apiService: APIService<APIToken>
     private let dateProvider: any DateProviderType
     private let apiTokenRepository: any APITokenRepositoryType<APIToken>
 
@@ -51,7 +51,7 @@ public final actor TokenManager<APIToken: CodableAPITokentType, RefreshTokenAPIR
     ///   - apiService: The `APIService` to use for API requests.
     ///   - dateProvider: The `DateProviderType` to use for getting the current date.
     ///   - apiTokenRepository: The `APITokenRepositoryType` to use for storing and retrieving API tokens.
-    public init(apiService: APIService,
+    public init(apiService: APIService<APIToken>,
          dateProvider: any DateProviderType,
          apiTokenRepository: any APITokenRepositoryType<APIToken>) {
         self.apiService = apiService
