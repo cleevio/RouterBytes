@@ -1,6 +1,6 @@
 //
-//  TokenAPIServiceTests.swift
-//
+//  AuthorizationTypeTokenAPIServiceTests.swift
+//  
 //
 //  Created by Lukáš Valenta on 05.05.2023.
 //
@@ -13,7 +13,7 @@ import CleevioAPI
 fileprivate var dateProvider = DateProviderMock(date: Date())
 
 @available(iOS 15.0, *)
-final class TokenAPIServiceTests: XCTestCase {
+final class AuthorizationTypeTokenAPIServiceTests: XCTestCase {
     var networkingService: NetworkingServiceMock!
     var apiService: AuthorizationTypeTokenAPIService<BaseAPIToken, TokenManager<BaseAPIToken, RefreshTokenRouter>>!
     var tokenManager: TokenManager<BaseAPIToken, RefreshTokenRouter>!

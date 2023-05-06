@@ -7,6 +7,7 @@
 
 import CleevioAPI
 import Foundation
+import CleevioStorage
 
 /// An enumeration of errors that can be thrown by `TokenManager`.
 public enum TokenManagerError: Error {
@@ -35,6 +36,13 @@ public protocol TokenManagerType<APIToken> {
     ///
     /// - Throws: `TokenManagerError.notLoggedIn` if the user is not logged in, or an error thrown by the API service.
     func getRefreshToken() async throws -> APIToken.RefreshToken
+
+    /// Logs out the user by clearing the stored API token.
+    ///
+    /// This function removes the currently stored API token from the token manager, effectively logging out the user.
+    ///
+    /// - Note: After calling this function, any subsequent API requests will likely result in a 403 Forbidden response.
+    func logout() async
 }
 
 /// A token manager that handles the retrieval and refreshing of API tokens.
@@ -43,7 +51,8 @@ public final actor TokenManager<APIToken: CodableAPITokentType, RefreshTokenAPIR
     private var refreshingTask: Task<APIToken, Error>?
     private let apiService: APIService<APIToken>
     private let dateProvider: any DateProviderType
-    private let apiTokenRepository: any APITokenRepositoryType<APIToken>
+    @usableFromInline
+    let apiTokenRepository: any APITokenRepositoryType<APIToken>
 
     /// Initializes a new instance of `TokenManager`.
     ///
@@ -98,6 +107,11 @@ public final actor TokenManager<APIToken: CodableAPITokentType, RefreshTokenAPIR
     @inlinable
     public func getRefreshToken() throws -> APIToken.RefreshToken {
         try apiToken.refreshToken
+    }
+
+    @inlinable
+    public func logout() async {
+        apiTokenRepository.apiToken.store(nil)
     }
 
     /// Asynchronously gets a refreshed access token.
