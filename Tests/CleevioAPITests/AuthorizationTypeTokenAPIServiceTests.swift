@@ -13,42 +13,11 @@ import CleevioAPI
 fileprivate var dateProvider = DateProviderMock(date: Date())
 
 @available(iOS 15.0, *)
-final class AuthorizationTypeTokenAPIServiceTests: XCTestCase {
-    var networkingService: NetworkingServiceMock!
-    var apiService: AuthorizationTypeTokenAPIService<BaseAPIToken, TokenManager<BaseAPIToken, RefreshTokenRouter>>!
-    var tokenManager: TokenManager<BaseAPIToken, RefreshTokenRouter>!
-    var delegate: MockAPIServiceEventDelegate!
-    var onNetworkCall: ((URLRequest) -> (Data, URLResponse))!
-    var tokenRepository: APITokenRepositoryMock<BaseAPIToken>!
-    
-    override func setUp() {
-        super.setUp()
-        
-        dateProvider = .init(date: Date())
-        self.networkingService = NetworkingServiceMock(onDataCall: { request, _ in
-            self.onNetworkCall(request)
-        })
-
-        tokenRepository = APITokenRepositoryMock(apiToken: nil)
-
-        tokenManager = TokenManager(
-            apiService: APIService(networkingService: networkingService),
-            dateProvider: dateProvider,
-            apiTokenRepository: tokenRepository
-        )
-
-        apiService = AuthorizationTypeTokenAPIService(tokenManager: tokenManager, networkingService: networkingService)
-        delegate = MockAPIServiceEventDelegate()
-        apiService.eventDelegate = delegate
+final class AuthorizationTypeTokenAPIServiceTests: TokenAPIServiceTests {
+    override var _apiServiceInitializer: TokenAPIService<BaseAPIToken, AuthorizationType, TokenManager<BaseAPIToken, RefreshTokenRouter>>! {
+        AuthorizationTypeTokenAPIService(tokenManager: tokenManager, networkingService: networkingService)
     }
     
-    override func tearDown() {
-        networkingService = nil
-        apiService = nil
-        delegate = nil
-        super.tearDown()
-    }
-
     func testGetDataNoAuthorization() async throws {
         let router: BaseAPIRouter<String, String> = Self.mockRouter(authType: .none)
         let expectedRequest = try router.asURLRequest()
@@ -83,6 +52,79 @@ final class AuthorizationTypeTokenAPIServiceTests: XCTestCase {
         )
     }
 
+    func testRetryOnFailure() async throws {
+        let router: BaseAPIRouter<String, String> = Self.mockRouter(authType: .bearer(.accessToken))
+        tokenRepository.apiToken.store(.init(accessToken: "best-access-Token", refreshToken: "best-refresh-Token", expiration: Date.distantFuture))
+        let expectedInitialRequest = self.setBearerTokenHelper(urlRequest: try router.asURLRequest(), token: "best-access-Token")
+        let receivedInitialResponse = HTTPURLResponse(url: expectedInitialRequest.url!, statusCode: 401, httpVersion: nil, headerFields: nil)!
+
+        let refreshToken = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI4ZmZiYWJjOS1mMTc5LTQyMmEtYWQ1My0yYWQ3YmQzOTk0YTEiLCJleHAiOjE2NzU3ODU0MjAsImlzcyI6ImNvbS5kcm9ucHJvLm1haW5hcGkiLCJ0eXBlIjoiUkVGUkVTSCJ9.u87LWGKaCecebc8qS2m37KJG8kT0bVBjBIo1RuuRGMkIpg3Dss4Y_VgNz-k5r2iB1JoDtLUwh1huR9m0vptzHw"
+        let accessToken = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI4ZmZiYWJjOS1mMTc5LTQyMmEtYWQ1My0yYWQ3YmQzOTk0YTEiLCJleHAiOjE2NzU3ODI3MjAsImlzcyI6ImNvbS5kcm9ucHJvLm1haW5hcGkiLCJ0eXBlIjoiQUNDRVNTIn0.7OjvRrOZgc8EuCjtOzdUPBZTKhhxm3m5p5oTxryjfPbUdjDAGq5X8HoyN2YFA_UQNRxSb6LLsujTxDEnsnvifQ"
+
+        let refreshResponse = """
+        {
+            "refresh" : "\(refreshToken)",
+            "expiresInS" : 900,
+            "access" : "\(accessToken)"
+        }
+        """.data(using: .utf8)!
+
+        let tokenResponse = try! JSONDecoder().decode(BaseAPIToken.self, from: refreshResponse)
+        
+        let expectedPostRefreshRequest = self.setBearerTokenHelper(urlRequest: try router.asURLRequest(), token: accessToken)
+
+        let expectedResponse = "Hello, World!"
+        let responseData = try JSONEncoder().encode(expectedResponse)
+
+        let successfulRequest = XCTestExpectation(description: "Request should succeed after token refreshing")
+
+        // Simulate a failure response for the initial request
+        let failedRequest = XCTestExpectation(description: "Initial request should fail")
+        onNetworkCall = { request in
+            print(request.cURL(pretty: true), expectedInitialRequest.cURL(pretty: true))
+            XCTAssertEqual(request, expectedInitialRequest)
+            failedRequest.fulfill()
+
+            self.onNetworkCall = { request in
+                
+                self.onNetworkCall = { request in
+                    XCTAssertEqual(request, expectedPostRefreshRequest)
+                    successfulRequest.fulfill()
+                    return (try! JSONEncoder().encode(expectedResponse), HTTPURLResponse())
+                }
+                
+                return (refreshResponse, HTTPURLResponse())
+
+            }
+            
+            return (Data(), receivedInitialResponse)
+        }
+    
+        // Perform the data request, which should trigger token refreshing and retry the request
+        let response = try await apiService.getData(from: router)
+
+        // Ensure that the request was retried and succeeded
+        XCTAssertEqual(response, expectedResponse)
+        XCTAssertEqual(delegate.receivedData, responseData)
+        XCTAssertEqual(delegate.firedRequest, expectedPostRefreshRequest)
+        XCTAssertNotNil(delegate.decodedValue as? String)
+
+        // Wait for expectations to be fulfilled
+        wait(for: [failedRequest, successfulRequest], timeout: 1)
+
+        do {
+            let accessToken = try await tokenManager.getAccessToken(forceRefresh: false)
+            let refreshToken = try await tokenManager.getRefreshToken()
+
+            XCTAssertEqual(accessToken, tokenResponse.accessToken)
+            XCTAssertEqual(refreshToken, tokenResponse.refreshToken)
+            XCTAssertEqual(tokenRepository.apiToken.value, tokenResponse)
+        } catch {
+            print(error)
+            XCTFail()
+        }
+    }
+
     func testAccessTokenBeingRefreshed() async throws {
         let router: BaseAPIRouter<String, String> = Self.mockRouter(authType: .bearer(.accessToken))
         let expectedResponse = "Hello, World!"
@@ -104,7 +146,7 @@ final class AuthorizationTypeTokenAPIServiceTests: XCTestCase {
         let tokenResponse = try! JSONDecoder().decode(BaseAPIToken.self, from: refreshResponse)
 
         let expectation = XCTestExpectation(description: "TokenManager should try to refresh token")
-        let expectedRequest = try router.asURLRequest().withBearerToken(accessToken)
+        let expectedRequest = self.setBearerTokenHelper(urlRequest: try router.asURLRequest(), token: accessToken)
         let receivedResponse = HTTPURLResponse(url: expectedRequest.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
 
         var isRefreshTokenNetworkCall = true
@@ -140,30 +182,8 @@ final class AuthorizationTypeTokenAPIServiceTests: XCTestCase {
             XCTFail()
         }
     }
-    
-    func getDataTestHelper(router: BaseAPIRouter<String, String>,
-                           expectedRequest: URLRequest,
-                           file: StaticString = #filePath,
-                           line: UInt = #line) async throws {
-        let expectedResponse = "Hello, World!"
-        let responseData = try JSONEncoder().encode(expectedResponse)
-        let receivedResponse = HTTPURLResponse(url: expectedRequest.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
 
-        onNetworkCall = { request in
-            XCTAssertEqual(request, expectedRequest, file: file, line: line)
-            return (responseData, receivedResponse)
-        }
-        
-        let response = try await apiService.getData(from: router)
-        
-        XCTAssertEqual(response, expectedResponse, file: file, line: line)
-        XCTAssertEqual(delegate.receivedData, responseData, file: file, line: line)
-        XCTAssertEqual(delegate.receivedResponse, receivedResponse, file: file, line: line)
-        XCTAssertEqual(delegate.firedRequest, expectedRequest, file: file, line: line)
-        XCTAssertNotNil(delegate.decodedValue as? String, file: file, line: line)
-    }
-
-    static private func mockRouter<Response: Decodable>(authType: AuthorizationType) -> BaseAPIRouter<String, Response> {
-        BaseAPIRouter(hostname: URL(string: "https://cleevio.com")!, path: "/blog", authType: authType)
+    override func setBearerTokenHelper(urlRequest: URLRequest, token: String) -> URLRequest {
+        urlRequest.withBearerToken(token)
     }
 }

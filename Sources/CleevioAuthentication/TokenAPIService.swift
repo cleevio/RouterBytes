@@ -66,7 +66,11 @@ open class TokenAPIService<APIToken: CodableAPITokentType, AuthorizationType, To
                 throw error
             }
         } catch {
-            throw error
+            guard let error = error as? ResponseValidationError, error == .invalidResponseCode else {
+                throw error
+            }
+            
+            return try await getDecoded(from: try await getSignedURLRequest(from: router, forceRefresh: false), decoder: router.jsonDecoder)
         }
     }
 
