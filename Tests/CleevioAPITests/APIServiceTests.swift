@@ -49,6 +49,122 @@ final class APIServiceTests: XCTestCase {
         XCTAssertNotNil(delegate.decodedValue as? String)
     }
 
+    func testRetryOnInternalErrorFailure() async throws {
+        let router: BaseAPIRouter<String, String> = Self.mockRouter()
+        let expectedRequest = try router.asURLRequest()
+        let receivedResponse = HTTPURLResponse(url: expectedRequest.url!, statusCode: 500, httpVersion: nil, headerFields: nil)!
+
+        let firstRequest = XCTestExpectation(description: "First request should fire")
+        let secondRequest = XCTestExpectation(description: "Second request should fire")
+
+        
+        networkingService.onDataCall = { request, _ in
+            XCTAssertEqual(expectedRequest, request)
+            firstRequest.fulfill()
+
+            self.networkingService.onDataCall = { request, _ in
+                XCTAssertEqual(expectedRequest, request)
+                secondRequest.fulfill()
+                return (Data(), receivedResponse)
+            }
+            
+            return (Data(), receivedResponse)
+        }
+    
+        do {
+            // Perform the data request, which should trigger token refreshing and retry the request
+            let response = try await apiService.getData(from: router)
+            XCTFail()
+        } catch {
+            // Ensure that the request was retried and succeeded
+            XCTAssertEqual(delegate.receivedResponse, receivedResponse)
+            XCTAssertEqual(delegate.firedRequest, expectedRequest)
+
+            // Wait for expectations to be fulfilled
+            wait(for: [firstRequest, secondRequest], timeout: 1)
+        }
+    }
+
+    func testRetryOnInternalErrorSuccess() async throws {
+        let router: BaseAPIRouter<String, String> = Self.mockRouter()
+        let expectedRequest = try router.asURLRequest()
+        let receivedResponse = HTTPURLResponse(url: expectedRequest.url!, statusCode: 500, httpVersion: nil, headerFields: nil)!
+        let receivedSuccessResponse = HTTPURLResponse(url: expectedRequest.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+        
+        let expectedData = "Hello, World!"
+        let responseData = try JSONEncoder().encode(expectedData)
+
+        let firstRequest = XCTestExpectation(description: "First request should fire")
+        let secondRequest = XCTestExpectation(description: "Second request should fire")
+
+        
+        networkingService.onDataCall = { request, _ in
+            XCTAssertEqual(expectedRequest, request)
+            firstRequest.fulfill()
+
+            self.networkingService.onDataCall = { request, _ in
+                XCTAssertEqual(expectedRequest, request)
+                secondRequest.fulfill()
+                return (responseData, receivedSuccessResponse)
+            }
+            
+            return (Data(), receivedResponse)
+        }
+    
+        // Perform the data request, which should trigger token refreshing and retry the request
+        let response = try await apiService.getData(from: router)
+
+        // Ensure that the request was retried and succeeded
+        XCTAssertEqual(delegate.receivedResponse, receivedSuccessResponse)
+        XCTAssertEqual(response, expectedData)
+        XCTAssertEqual(delegate.decodedValue as? String, expectedData)
+        XCTAssertEqual(delegate.firedRequest, expectedRequest)
+        XCTAssertNotNil(delegate.decodedValue as? String)
+
+        // Wait for expectations to be fulfilled
+        wait(for: [firstRequest, secondRequest], timeout: 1)
+    }
+
+    func testRetryOnTimeout() async throws {
+        let router: BaseAPIRouter<String, String> = Self.mockRouter()
+        let expectedRequest = try router.asURLRequest()
+        let receivedResponse = HTTPURLResponse(url: expectedRequest.url!, statusCode: 500, httpVersion: nil, headerFields: nil)!
+        let receivedSuccessResponse = HTTPURLResponse(url: expectedRequest.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+        
+        let expectedData = "Hello, World!"
+        let responseData = try JSONEncoder().encode(expectedData)
+
+        let firstRequest = XCTestExpectation(description: "First request should fire")
+        let secondRequest = XCTestExpectation(description: "Second request should fire")
+
+        
+        networkingService.onDataCall = { request, _ in
+            XCTAssertEqual(expectedRequest, request)
+            firstRequest.fulfill()
+
+            self.networkingService.onDataCall = { request, _ in
+                XCTAssertEqual(expectedRequest, request)
+                secondRequest.fulfill()
+                return (responseData, receivedSuccessResponse)
+            }
+            
+            throw NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut, userInfo: nil)
+        }
+    
+        // Perform the data request, which should trigger token refreshing and retry the request
+        let response = try await apiService.getData(from: router)
+
+        // Ensure that the request was retried and succeeded
+        XCTAssertEqual(delegate.receivedResponse, receivedSuccessResponse)
+        XCTAssertEqual(response, expectedData)
+        XCTAssertEqual(delegate.decodedValue as? String, expectedData)
+        XCTAssertEqual(delegate.firedRequest, expectedRequest)
+        XCTAssertNotNil(delegate.decodedValue as? String)
+
+        // Wait for expectations to be fulfilled
+        wait(for: [firstRequest, secondRequest], timeout: 1)
+    }
+
     static private func mockRouter<Response: Decodable>() -> BaseAPIRouter<String, Response> {
         BaseAPIRouter(hostname: URL(string: "https://cleevio.com")!, path: "/blog", authType: .none)
     }

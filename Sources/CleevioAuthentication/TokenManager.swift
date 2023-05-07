@@ -18,7 +18,7 @@ public enum TokenManagerError: Error {
 /// A protocol defining the interface for a token manager.
 ///
 /// APIToken must conform to `CodableAPITokentType`.
-public protocol TokenManagerType<APIToken> {
+public protocol TokenManagerType<APIToken>: AnyObject {
     associatedtype APIToken: CodableAPITokentType
 
     /// Retrieves an access token, optionally forcing a refresh.

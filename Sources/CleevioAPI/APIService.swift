@@ -7,15 +7,30 @@
 
 import Foundation
 
-
 /**
- `APIService` is a class responsible for making network requests and decoding responses. It uses an implementation of `NetworkingServiceType` protocol to actually perform the network requests.
+ `APIService` is a class responsible for making network requests and decoding responses. It uses an implementation of the `NetworkingServiceType` protocol to perform the network requests.
 
- To use `APIService`, subclass it and override its methods as needed. The `getData` method is the most commonly used method for fetching data from the network. You pass an implementation of `APIRouter` to `getData` and it returns the decoded `APIRouter.Response`.
+ To use `APIService`, subclass it and override its methods as needed. The most commonly used method is `getData`, which fetches data from the network. You pass an implementation of the `APIRouter` to `getData`, and it returns the decoded `APIRouter.Response`.
 
- `APIService` also has an optional `APIServiceEventDelegate` to which it reports the progress of the requests.
+ `APIService` supports retry functionality in the `getData` method. If the network request fails due to an invalid response code or a timeout error, it will retry the request once. This behavior helps improve the reliability of data retrieval.
 
- The generic `AuthorizationType` is the authorization type used by the network requests. It is specified when creating an instance of `APIService`.
+ The class also provides an optional `APIServiceEventDelegate` that can be used to receive events from the `APIService` object, such as progress updates and response decoding notifications.
+
+ The generic `AuthorizationType` represents the type of authorization used by the network requests. It is specified when creating an instance of `APIService`.
+
+ - Example usage:
+ ```
+ let networkingService = YourNetworkingService()
+ let apiService = APIService<YourAuthorizationType>(networkingService: networkingService)
+
+ let router = YourAPIRouter()
+ do {
+     let responseData: YourResponseDataType = try await apiService.getData(from: router)
+     // Handle the decoded response data
+ } catch {
+     // Handle the error
+ }
+ ```
 */
 @available(macOS 12.0, *)
 open class APIService<AuthorizationType> {
@@ -40,14 +55,21 @@ open class APIService<AuthorizationType> {
 
      This method fetches the data from the network using a `URLRequest` created by the `asURLRequest` method of the given `APIRouter`. The data is then decoded using the `jsonDecoder` property of the router.
      
-     `RouterType.AuthorizationType` must match the `AuthorizationType` of the `APIService` instance.
+     The method supports retry functionality. If the network request fails due to an invalid response code or a timeout error, it will retry the request once. This behavior helps improve the reliability of data retrieval.
 
      - Parameter router: The router to use for creating the request.
      - Returns: A decoded response object of type `RouterType.Response`.
-     - Throws: An error if the network request or decoding fails
+     - Throws: An error if the network request or decoding fails.
+     - Note: `RouterType.AuthorizationType` must match the `AuthorizationType` of the `APIService` instance.
      */
     open func getData<RouterType: APIRouter>(from router: RouterType) async throws -> RouterType.Response where RouterType.AuthorizationType == AuthorizationType {
-        try await getDecoded(from: try await getSignedURLRequest(from: router), decoder: router.jsonDecoder)
+        do {
+            return try await getDecoded(from: try await getSignedURLRequest(from: router), decoder: router.jsonDecoder)
+        }  catch let error as ResponseValidationError where error == .invalidResponseCode {
+            return try await getDecoded(from: try await getSignedURLRequest(from: router), decoder: router.jsonDecoder)
+        } catch let error as NSError where error.domain == NSURLErrorDomain && error.code == NSURLErrorTimedOut {
+            return try await getDecoded(from: try await getSignedURLRequest(from: router), decoder: router.jsonDecoder)
+        }
     }
 
     /**

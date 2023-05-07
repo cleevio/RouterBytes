@@ -65,12 +65,6 @@ open class TokenAPIService<APIToken: CodableAPITokentType, AuthorizationType, To
                 await tokenManager.logout()
                 throw error
             }
-        } catch {
-            guard let error = error as? ResponseValidationError, error == .invalidResponseCode else {
-                throw error
-            }
-            
-            return try await getDecoded(from: try await getSignedURLRequest(from: router, forceRefresh: false), decoder: router.jsonDecoder)
         }
     }
 
@@ -86,7 +80,7 @@ open class TokenAPIService<APIToken: CodableAPITokentType, AuthorizationType, To
      - Throws: An error if the URLRequest could not be created from the APIRouter or if there was an issue retrieving the access token.
      */
     @inlinable
-    open override func getSignedURLRequest<RouterType>(from router: RouterType) async throws -> URLRequest where AuthorizationType == RouterType.AuthorizationType, RouterType : APIRouter {
+    public override func getSignedURLRequest<RouterType>(from router: RouterType) async throws -> URLRequest where AuthorizationType == RouterType.AuthorizationType, RouterType : APIRouter {
         try await getSignedURLRequest(from: router, forceRefresh: false)
     }
 
