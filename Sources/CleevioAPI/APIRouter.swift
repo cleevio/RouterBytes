@@ -35,9 +35,9 @@ public typealias Headers = [String: String]
  - SeeAlso: `APIRouterError`,` `HTTPMethod`, `Headers`, `APIRequestBody`
  */
 public protocol APIRouter<RequestBody>: Sendable {
-    associatedtype Response: Decodable
+    associatedtype Response
     associatedtype AuthorizationType = CleevioAPI.AuthorizationType
-    associatedtype RequestBody: Encodable & Sendable = EmptyCodable
+    associatedtype RequestBody: Sendable = Void
 
     // Properties to be specified within the project APIRouter protocol
     /// The default headers for the API endpoint.
@@ -67,6 +67,8 @@ public protocol APIRouter<RequestBody>: Sendable {
     var authType: AuthorizationType { get }
     /// The cache policy for the API request. Default: .get
     var cachePolicy: URLRequest.CachePolicy { get }
+
+    func encodedBody() throws -> Data?
 }
 
 public extension APIRouter {
@@ -109,14 +111,29 @@ public extension APIRouter {
             urlRequest.setValue(header.value, forHTTPHeaderField: header.key)
         }
 
-        if let body = body {
-            urlRequest.httpBody = try jsonEncoder.encode(body)
-        }
+        urlRequest.httpBody = try encodedBody()
 
         return urlRequest
     }
 }
 
-public extension APIRouter<EmptyCodable> {
-    var body: RequestBody? { nil }
+public extension APIRouter where RequestBody: Encodable {
+    @inlinable
+    func encodedBody() throws -> Data? {
+        guard let body else { return nil }
+
+        return try jsonEncoder.encode(body)
+    }
+}
+
+public extension APIRouter where RequestBody == Void {
+    @inlinable
+    var body: RequestBody? {
+        nil
+    }
+
+    @inlinable
+    func encodedBody() throws -> Data? {
+        nil
+    }
 }

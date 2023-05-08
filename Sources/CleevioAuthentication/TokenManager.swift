@@ -18,6 +18,7 @@ public enum TokenManagerError: Error {
 /// A protocol defining the interface for a token manager.
 ///
 /// APIToken must conform to `CodableAPITokentType`.
+@available(macOS 10.15.0, *)
 public protocol TokenManagerType<APIToken>: AnyObject {
     associatedtype APIToken: CodableAPITokentType
 
@@ -140,8 +141,8 @@ public final actor TokenManager<APIToken: CodableAPITokentType, RefreshTokenAPIR
             let router = RefreshTokenAPIRouterType()
 
             let urlRequest = try router.asURLRequest().withBearerToken(getRefreshToken().description)
-            
-            return try await apiService.getDecoded(from: urlRequest, decoder: router.jsonDecoder)
+
+            return try await apiService.getDecoded(from: try await apiService.getDataFromNetwork(for: urlRequest), decoder: router.jsonDecoder)
         }
     }
 }

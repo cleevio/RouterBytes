@@ -55,12 +55,13 @@ open class TokenAPIService<APIToken: CodableAPITokentType, AuthorizationType, To
         - `TokenManagerError.notLoggedIn` if the user is not logged in.
         - An error thrown by the API service if the request fails or if there is an issue with the response.
      */
-    override open func getData<RouterType>(from router: RouterType) async throws -> RouterType.Response where AuthorizationType == RouterType.AuthorizationType, RouterType : APIRouter {
+    @discardableResult
+    open override func getData<RouterType: APIRouter>(for router: RouterType, request: @autoclosure () async throws -> URLRequest) async throws -> Data where RouterType.AuthorizationType == AuthorizationType {
         do {
-            return try await super.getData(from: router)
+            return try await super.getData(for: router, request: try await request())
         } catch ResponseValidationError.unauthorized {
             do {
-                return try await getDecoded(from: try await getSignedURLRequest(from: router, forceRefresh: true), decoder: router.jsonDecoder)
+                return try await getDataFromNetwork(for: try await getSignedURLRequest(from: router, forceRefresh: true))
             } catch {
                 await tokenManager.logout()
                 throw error
@@ -80,7 +81,7 @@ open class TokenAPIService<APIToken: CodableAPITokentType, AuthorizationType, To
      - Throws: An error if the URLRequest could not be created from the APIRouter or if there was an issue retrieving the access token.
      */
     @inlinable
-    public override func getSignedURLRequest<RouterType>(from router: RouterType) async throws -> URLRequest where AuthorizationType == RouterType.AuthorizationType, RouterType : APIRouter {
+    public override final func getSignedURLRequest<RouterType>(from router: RouterType) async throws -> URLRequest where AuthorizationType == RouterType.AuthorizationType, RouterType : APIRouter {
         try await getSignedURLRequest(from: router, forceRefresh: false)
     }
 

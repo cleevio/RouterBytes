@@ -52,44 +52,6 @@ open class APIService<AuthorizationType>: @unchecked Sendable {
     }
 
     /**
-     Fetches data from the network using a given router.
-
-     This method fetches the data from the network using a `URLRequest` created by the `asURLRequest` method of the given `APIRouter`. The data is then decoded using the `jsonDecoder` property of the router.
-     
-     The method supports retry functionality. If the network request fails due to an invalid response code or a timeout error, it will retry the request once. This behavior helps improve the reliability of data retrieval.
-
-     - Parameter router: The router to use for creating the request.
-     - Returns: A decoded response object of type `RouterType.Response`.
-     - Throws: An error if the network request or decoding fails.
-     - Note: `RouterType.AuthorizationType` must match the `AuthorizationType` of the `APIService` instance.
-     */
-    open func getData<RouterType: APIRouter>(from router: RouterType) async throws -> RouterType.Response where RouterType.AuthorizationType == AuthorizationType {
-        do {
-            return try await getDecoded(from: try await getSignedURLRequest(from: router), decoder: router.jsonDecoder)
-        }  catch let error as ResponseValidationError where error == .invalidResponseCode {
-            return try await getDecoded(from: try await getSignedURLRequest(from: router), decoder: router.jsonDecoder)
-        } catch let error as NSError where error.domain == NSURLErrorDomain && error.code == NSURLErrorTimedOut {
-            return try await getDecoded(from: try await getSignedURLRequest(from: router), decoder: router.jsonDecoder)
-        }
-    }
-
-    /**
-     Returns a signed URL request created by a given router.
-     
-     This method creates and signs a `URLRequest` using the `asURLRequest` method of the given `APIRouter`.
-     
-     `RouterType.AuthorizationType` must match the `AuthorizationType` of the `APIService` instance.
-     
-     - Parameter router: The router to use for creating the request.
-     - Returns: A signed `URLRequest` object.
-     - Throws: An error if the URLRequest could not be created from APIRouter.
-     */
-    @inlinable
-    open func getSignedURLRequest<RouterType: APIRouter>(from router: RouterType) async throws -> URLRequest where RouterType.AuthorizationType == AuthorizationType {
-        try router.asURLRequest()
-    }
-
-    /**
      Fetches and decodes data from the network using a given `URLRequest`.
      
      This method fetches the data from the network using the given `URLRequest`. It also decodes the data using the given `JSONDecoder` and reports the progress of the request to the `eventDelegate` if it is set.
@@ -101,19 +63,78 @@ open class APIService<AuthorizationType>: @unchecked Sendable {
      - Throws: An error if the network request or decoding fails.
      */
     @inlinable
-    open func getDecoded<T: Decodable>(from request: URLRequest, decoder: JSONDecoder) async throws -> T {
-        let data = try await getData(from: request)
-        
-        let decoded: T = try {
-            if T.self is EmptyCodable.Type, let empty = EmptyCodable() as? T {
-               return empty
-            }
+    final public func getData<RouterType: APIRouter>(from router: RouterType) async throws -> RouterType.Response where RouterType.AuthorizationType == AuthorizationType, RouterType.Response: Decodable {
+        let data = try await getData(for: router, request: try await getSignedURLRequest(from: router))
+        return try await getDecoded(from: data, decoder: router.jsonDecoder)
+    }
 
-            return try decoder.decode(T.self, from: data)
-        }()
+    /**
+     Fetches data from the network using a given `APIRouter`.
+
+     This method fetches the data from the network using the given `APIRouter` and reports the progress of the request to the `eventDelegate` if it is set.
+
+     - Parameter router: The `APIRouter` object representing the network request.
+     - Throws: An error if the network request fails.
+     - Note: `RouterType.AuthorizationType` must match the `AuthorizationType` of the `APIService` instance.
+     */
+    @inlinable
+    final public func getData<RouterType: APIRouter>(from router: RouterType) async throws -> Void where RouterType.AuthorizationType == AuthorizationType, RouterType.Response == Void {
+        try await getData(for: router, request: try await getSignedURLRequest(from: router))
+    }
+
+    /**
+     Fetches data from the network for the specified `APIRouter`.
+
+     This method fetches the data from the network using the `URLRequest` created by the `asURLRequest()` method of the given `APIRouter`. The method also supports retry functionality, improving the reliability of data retrieval by retrying the request once if it fails due to an invalid response code or a timeout error.
+
+     - Parameter router: The `APIRouter` object representing the network request.
+     - Parameter request: A closure that asynchronously returns the `URLRequest` object to be used for the network request.
+     - Returns: The data fetched from the network.
+     - Throws: An error if the network request fails.
+     - Note: `RouterType.AuthorizationType` must match the `AuthorizationType` of the `APIService` instance.
+     */
+    @discardableResult
+    open func getData<RouterType: APIRouter>(for router: RouterType, request: @autoclosure () async throws -> URLRequest) async throws -> Data where RouterType.AuthorizationType == AuthorizationType {
+        do {
+            return try await getDataFromNetwork(for: try await request())
+        }  catch let error as ResponseValidationError where error == .invalidResponseCode {
+            return try await getDataFromNetwork(for: try await request())
+        } catch let error as NSError where error.domain == NSURLErrorDomain && error.code == NSURLErrorTimedOut {
+            return try await getDataFromNetwork(for: try await request())
+        }
+    }
+
+    /**
+     Returns a signed URL request created by a given `APIRouter`.
+
+     This method creates and signs a `URLRequest` using the `asURLRequest()` method of the given `APIRouter`.
+
+     - Parameter router: The `APIRouter` object representing the network request.
+     - Returns: A signed `URLRequest` object.
+     - Throws: An error if the `URLRequest` could not be created from the `APIRouter`.
+     - Note: `RouterType.AuthorizationType` must match the `AuthorizationType` of the `APIService` instance.
+     */
+    @inlinable
+    open func getSignedURLRequest<RouterType: APIRouter>(from router: RouterType) async throws -> URLRequest where RouterType.AuthorizationType == AuthorizationType {
+        try router.asURLRequest()
+    }
+
+    /**
+     Decodes the data using the specified `JSONDecoder`.
+
+     This method decodes the given data using the specified `JSONDecoder`. It also reports the progress of the decoding to the `eventDelegate` if it is set.
+
+     - Parameters:
+       - data: The data to be decoded.
+       - decoder: The `JSONDecoder` to use for decoding the data.
+     - Returns: A decoded object of the specified type.
+     - Throws: An error if the decoding fails.
+     */
+    final public func getDecoded<T: Decodable>(from data: Data, decoder: JSONDecoder) async throws -> T {
+        let decoded: T = try decoder.decode(T.self, from: data)
 
         eventDelegate?.responseDecoded(decoded)
-        
+
         return decoded
     }
 
@@ -124,8 +145,9 @@ open class APIService<AuthorizationType>: @unchecked Sendable {
      
      - Parameter request: The `URLRequest` to use for fetching the data.
      - Returns: The data fetched from the network.
+     - Throws: An error if the network request fails.
      */
-    open func getData(from request: URLRequest) async throws -> Data {
+    final public func getDataFromNetwork(for request: URLRequest) async throws -> Data {
         eventDelegate?.requestFired(request: request)
 
         let (data, response) = try await networkingService.data(for: request)
