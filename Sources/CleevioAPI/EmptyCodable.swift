@@ -22,6 +22,6 @@ import Foundation
 ///
 /// let request = MyRequest(id: 1, name: "Example", payload: EmptyCodable())
 /// ```
-public struct EmptyCodable: Codable {
+public struct EmptyCodable: Codable, Sendable {
     public init() { }
 }

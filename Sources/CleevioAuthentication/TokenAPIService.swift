@@ -36,9 +36,9 @@ open class TokenAPIService<APIToken: CodableAPITokentType, AuthorizationType, To
         - networkingService: The networking service to use for network requests.
      */
     @inlinable
-    public init(tokenManager: TokenManager, networkingService: NetworkingServiceType) {
+    public init(tokenManager: TokenManager, networkingService: NetworkingServiceType, eventDelegate: APIServiceEventDelegate) {
         self.tokenManager = tokenManager
-        super.init(networkingService: networkingService)
+        super.init(networkingService: networkingService, eventDelegate: eventDelegate)
     }
 
     /**

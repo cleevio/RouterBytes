@@ -33,12 +33,12 @@ import Foundation
  ```
 */
 @available(macOS 12.0, *)
-open class APIService<AuthorizationType> {
+open class APIService<AuthorizationType>: @unchecked Sendable {
     /// The networking service used to perform network requests.
     public final let networkingService: NetworkingServiceType
 
     /// An optional delegate that can be used to receive events from the `APIService` object.
-    public final var eventDelegate: APIServiceEventDelegate?
+    public final let eventDelegate: APIServiceEventDelegate?
 
     /**
      Initializes an `APIService` object with a specified networking service.
@@ -46,8 +46,9 @@ open class APIService<AuthorizationType> {
      - Parameter networkingService: The networking service to use for network requests.
      */
     @inlinable
-    public init(networkingService: NetworkingServiceType) {
+    public init(networkingService: NetworkingServiceType, eventDelegate: APIServiceEventDelegate? = nil) {
         self.networkingService = networkingService
+        self.eventDelegate = eventDelegate
     }
 
     /**

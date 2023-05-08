@@ -8,13 +8,13 @@
 import Foundation
 
 /// A protocol that defines the behavior of an API token.
-public protocol APITokenType {
+public protocol APITokenType: Sendable {
     
     /// The type used to represent the access token.
-    associatedtype AccessToken: CustomStringConvertible = String
+    associatedtype AccessToken: CustomStringConvertible & Sendable = String
     
     /// The type used to represent the refresh token.
-    associatedtype RefreshToken: CustomStringConvertible = String
+    associatedtype RefreshToken: CustomStringConvertible & Sendable = String
 
     /// The current access token.
     var accessToken: AccessToken { get }

@@ -18,9 +18,8 @@ final class APIServiceTests: XCTestCase {
         super.setUp()
         
         networkingService = NetworkingServiceMock()
-        apiService = APIService(networkingService: networkingService)
         delegate = MockAPIServiceEventDelegate()
-        apiService.eventDelegate = delegate
+        apiService = APIService(networkingService: networkingService, eventDelegate: delegate)
     }
     
     override func tearDown() {
@@ -73,7 +72,7 @@ final class APIServiceTests: XCTestCase {
     
         do {
             // Perform the data request, which should trigger token refreshing and retry the request
-            let response = try await apiService.getData(from: router)
+            _ = try await apiService.getData(from: router)
             XCTFail()
         } catch {
             // Ensure that the request was retried and succeeded
@@ -128,7 +127,6 @@ final class APIServiceTests: XCTestCase {
     func testRetryOnTimeout() async throws {
         let router: BaseAPIRouter<String, String> = Self.mockRouter()
         let expectedRequest = try router.asURLRequest()
-        let receivedResponse = HTTPURLResponse(url: expectedRequest.url!, statusCode: 500, httpVersion: nil, headerFields: nil)!
         let receivedSuccessResponse = HTTPURLResponse(url: expectedRequest.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
         
         let expectedData = "Hello, World!"
@@ -171,7 +169,7 @@ final class APIServiceTests: XCTestCase {
 }
 
 
-final class MockAPIServiceEventDelegate: APIServiceEventDelegate {
+final class MockAPIServiceEventDelegate: @unchecked Sendable, APIServiceEventDelegate {
     var firedRequest: URLRequest?
     var receivedData: Data?
     var receivedResponse: URLResponse?

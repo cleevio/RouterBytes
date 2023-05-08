@@ -15,7 +15,7 @@ fileprivate var dateProvider = DateProviderMock(date: Date())
 @available(iOS 15.0, *)
 final class AuthorizationTypeTokenAPIServiceTests: TokenAPIServiceTests {
     override var _apiServiceInitializer: TokenAPIService<BaseAPIToken, AuthorizationType, TokenManager<BaseAPIToken, RefreshTokenRouter>>! {
-        AuthorizationTypeTokenAPIService(tokenManager: tokenManager, networkingService: networkingService)
+        AuthorizationTypeTokenAPIService(tokenManager: tokenManager, networkingService: networkingService, eventDelegate: delegate)
     }
     
     func testGetDataNoAuthorization() async throws {

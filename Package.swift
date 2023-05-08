@@ -3,6 +3,12 @@
 
 import PackageDescription
 
+let swiftSettings = [SwiftSetting.unsafeFlags([
+    "-Xfrontend", "-strict-concurrency=complete",
+    "-Xfrontend", "-warn-concurrency",
+    "-Xfrontend", "-enable-actor-data-race-checks",
+])]
+
 let package = Package(
     name: "CleevioAPILibrary",
     platforms: [
@@ -26,18 +32,22 @@ let package = Package(
             name: "CleevioAPI",
             dependencies: [
                 .product(name: "CleevioCore", package: "CleevioCore")
-            ]),
+            ],
+            swiftSettings: swiftSettings
+        ),
         .target(
             name: "CleevioAuthentication",
             dependencies: [
                 "CleevioAPI",
                 "CleevioStorage"
-            ]),
+            ],
+            swiftSettings: swiftSettings
+        ),
         .testTarget(
             name: "CleevioAPITests",
             dependencies: [
                 "CleevioAPI",
                 "CleevioAuthentication"
-            ]),
+            ])
     ]
 )

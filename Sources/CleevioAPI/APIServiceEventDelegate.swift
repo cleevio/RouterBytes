@@ -26,7 +26,7 @@ import Foundation
 ///    }
 ///}
 /// ```
-public protocol APIServiceEventDelegate {
+public protocol APIServiceEventDelegate: Sendable {
     /**
      Notifies the delegate that a network request has been fired.
      

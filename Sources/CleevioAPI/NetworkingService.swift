@@ -8,7 +8,7 @@
 import Foundation
 
 @available(macOS 12.0, *)
-public protocol NetworkingServiceType {
+public protocol NetworkingServiceType: Sendable {
     /// Invalidates the session, allowing any outstanding tasks to finish.
     ///
     /// This method returns immediately without waiting for tasks to finish. Once a session is invalidated, new tasks cannot be created in the session, but existing tasks continue until completion. After the last task finishes and the session makes the last delegate call related to those tasks, the session calls the `urlSession(_:didBecomeInvalidWithError:)` method on its delegate, then breaks references to the delegate and callback objects. After invalidation, session objects cannot be reused.
@@ -112,7 +112,7 @@ public struct NetworkingService: NetworkingServiceType {
 
 @available(macOS 12.0, *)
 @available(iOS 15.0, *)
-public final class NetworkingServiceMock: NetworkingServiceType {
+public final class NetworkingServiceMock: @unchecked Sendable, NetworkingServiceType {
     public var onDataCall: ((URLRequest, URLSessionDelegate?) async throws -> (Data, URLResponse))?
     public var onBytesCall: ((URLRequest, URLSessionTaskDelegate?) async throws -> (URLSession.AsyncBytes, URLResponse))?
 

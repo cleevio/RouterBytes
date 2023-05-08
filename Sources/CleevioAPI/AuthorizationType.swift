@@ -8,7 +8,7 @@
 import Foundation
 
 /// The type of authorization used for a network request.
-public enum AuthorizationType {
+public enum AuthorizationType: Sendable {
     
     /// No authorization used for the request.
     case none
@@ -17,7 +17,7 @@ public enum AuthorizationType {
     case bearer(BearerType)
     
     /// The type of bearer authorization used for the request.
-    public enum BearerType {
+    public enum BearerType: Sendable {
         
         /// Access token used for bearer authorization.
         case accessToken

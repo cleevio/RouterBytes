@@ -8,7 +8,7 @@
 import Foundation
 
 /// An enumeration of common HTTP response status codes and their corresponding integer values.
-public enum ResponseStatusCode {
+public enum ResponseStatusCode: Sendable {
     
     /// The HTTP status code for a successful request.
     ///

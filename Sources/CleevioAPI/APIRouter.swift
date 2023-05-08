@@ -7,7 +7,7 @@
 
 import Foundation
 
-public typealias APIRequestBody = any Encodable
+public typealias APIRequestBody = any Encodable & Sendable
 public typealias Headers = [String: String]
 
 /**
@@ -34,10 +34,10 @@ public typealias Headers = [String: String]
     - `authType`: The authorization type for the API endpoint.
  - SeeAlso: `APIRouterError`,` `HTTPMethod`, `Headers`, `APIRequestBody`
  */
-public protocol APIRouter<RequestBody> {
+public protocol APIRouter<RequestBody>: Sendable {
     associatedtype Response: Decodable
     associatedtype AuthorizationType = CleevioAPI.AuthorizationType
-    associatedtype RequestBody: Encodable = EmptyCodable
+    associatedtype RequestBody: Encodable & Sendable = EmptyCodable
 
     // Properties to be specified within the project APIRouter protocol
     /// The default headers for the API endpoint.

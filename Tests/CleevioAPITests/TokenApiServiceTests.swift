@@ -22,7 +22,7 @@ class TokenAPIServiceTests: XCTestCase {
     var tokenRepository: APITokenRepositoryMock<BaseAPIToken>!
     
     var _apiServiceInitializer: TokenAPIService<BaseAPIToken, AuthorizationType, TokenManager<BaseAPIToken, RefreshTokenRouter>>! {
-        TokenAPIService(tokenManager: tokenManager, networkingService: networkingService)
+        TokenAPIService(tokenManager: tokenManager, networkingService: networkingService, eventDelegate: delegate)
     }
 
     override func setUp() {
@@ -34,6 +34,7 @@ class TokenAPIServiceTests: XCTestCase {
         })
 
         tokenRepository = APITokenRepositoryMock(apiToken: nil)
+        delegate = MockAPIServiceEventDelegate()
 
         tokenManager = TokenManager(
             apiService: APIService(networkingService: networkingService),
@@ -42,8 +43,6 @@ class TokenAPIServiceTests: XCTestCase {
         )
 
         apiService = _apiServiceInitializer
-        delegate = MockAPIServiceEventDelegate()
-        apiService.eventDelegate = delegate
     }
     
     override func tearDown() {
@@ -131,7 +130,7 @@ class TokenAPIServiceTests: XCTestCase {
     
         do {
             // Perform the data request, which should trigger token refreshing and retry the request
-            let response = try await apiService.getData(from: router)
+            _ = try await apiService.getData(from: router)
             XCTFail()
         } catch {
             // Ensure that the request was retried and succeeded
@@ -179,7 +178,7 @@ class TokenAPIServiceTests: XCTestCase {
     
         do {
             // Perform the data request, which should trigger token refreshing and retry the request
-            let response = try await apiService.getData(from: router)
+            _ = try await apiService.getData(from: router)
             XCTFail()
         } catch {
             // Ensure that the request was retried and succeeded

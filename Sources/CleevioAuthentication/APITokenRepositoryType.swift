@@ -19,7 +19,7 @@ public typealias APITokenStorageStream<APIToken: CodableAPITokentType> = Storage
 /// A protocol that defines the behavior of an API token repository.
 /// Generic over APITokenType
 @available(macOS 12.0, *)
-public protocol APITokenRepositoryType<APIToken> {
+public protocol APITokenRepositoryType<APIToken>: Sendable {
     
     /// The type of API token to be stored in the repository.
     associatedtype APIToken: CodableAPITokentType
@@ -31,7 +31,7 @@ public protocol APITokenRepositoryType<APIToken> {
 /// A mock implementation of an API token repository.
 /// Generic over APITokenType to be stored in the repository.
 @available(macOS 12.0, *)
-public struct APITokenRepositoryMock<APIToken: CodableAPITokentType>: APITokenRepositoryType {
+public struct APITokenRepositoryMock<APIToken: CodableAPITokentType>: @unchecked Sendable, APITokenRepositoryType  {
     
     /// The storage stream that holds the API token.
     public let apiToken: APITokenStorageStream<APIToken>

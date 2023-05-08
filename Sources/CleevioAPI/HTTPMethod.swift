@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct HTTPMethod: Equatable, Hashable, ExpressibleByStringLiteral {
+public struct HTTPMethod: Equatable, Hashable, ExpressibleByStringLiteral, Sendable {
     /// `CONNECT` method.
     public static let connect: HTTPMethod = "CONNECT"
     /// `DELETE` method.

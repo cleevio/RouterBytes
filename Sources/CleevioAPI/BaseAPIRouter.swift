@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct BaseAPIRouter<RequestBody: Encodable, Response: Decodable>: APIRouter {
+public struct BaseAPIRouter<RequestBody: Encodable & Sendable, Response: Decodable>: APIRouter {
     public let defaultHeaders: Headers
     public let hostname: URL
     public let jsonDecoder: JSONDecoder

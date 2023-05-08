@@ -13,7 +13,7 @@ import Foundation
  Types conforming to this protocol can be used to abstract away the system's date
  functions and instead provide a mock date for testing purposes.
  */
-public protocol DateProviderType {
+public protocol DateProviderType: Sendable {
     /**
      Returns the current date.
      
