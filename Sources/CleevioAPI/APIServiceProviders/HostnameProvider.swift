@@ -23,6 +23,7 @@ public extension HostnameProvider {
     ///
     /// - Parameter router: The API router to get the hostname for.
     /// - Returns: The hostname for the given API router.
+    @inlinable
     func hostname<T: APIRouter>(for router: T) -> URL where T: HasHostname {
         router.hostname
     }
@@ -31,11 +32,13 @@ public extension HostnameProvider {
 /// A basic hostname provider that returns a fixed hostname for any given API router.
 public struct BaseHostnameProvider: HostnameProvider {
     /// The fixed hostname used by this provider.
-    private let hostname: URL
+    @usableFromInline
+    let hostname: URL
     
     /// Initializes a new BaseHostnameProvider with the given hostname.
     ///
     /// - Parameter hostname: The fixed hostname for the API requests.
+    @inlinable
     public init(hostname: URL) {
         self.hostname = hostname
     }
@@ -44,6 +47,7 @@ public struct BaseHostnameProvider: HostnameProvider {
     ///
     /// - Parameter router: The API router to get the hostname for.
     /// - Returns: The fixed hostname for any given API router.
+    @inlinable
     public func hostname(for router: some APIRouter) -> URL {
         hostname
     }

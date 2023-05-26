@@ -18,6 +18,8 @@ import Foundation
  
  The generic `AuthorizationType` represents the type of authorization used by the network requests. It is specified when creating an instance of `APIService`.
  
+ By default, `APIService` uses `URLSession.shared` as the networking service.
+ 
  - Example usage:
  ```
  let networkingService = YourNetworkingService()
@@ -45,17 +47,19 @@ open class APIService<AuthorizationType>: @unchecked Sendable {
     /**
      Initializes an `APIService` object with specified networking service, URL request provider, and an optional event delegate.
      
-     - Parameter networkingService: The networking service to use for network requests.
+     - Parameter networkingService: The networking service to use for network requests. Defaults to `URLSession.shared`.
      - Parameter urlRequestProvider: The URL request provider to create URL requests for the network requests.
      - Parameter eventDelegate: An optional event delegate to handle events related to the network requests. Defaults to `nil`.
      */
     @inlinable
-    public init(networkingService: NetworkingServiceType, urlRequestProvider: any URLRequestProvider<AuthorizationType>, eventDelegate: APIServiceEventDelegate? = nil) {
+    public init(networkingService: NetworkingServiceType = URLSession.shared,
+                urlRequestProvider: any URLRequestProvider<AuthorizationType>,
+                eventDelegate: APIServiceEventDelegate? = nil) {
         self.networkingService = networkingService
         self.eventDelegate = eventDelegate
         self.urlRequestProvider = urlRequestProvider
     }
-    
+
     /**
      Fetches and decodes data from the network using a given `URLRequest`.
      

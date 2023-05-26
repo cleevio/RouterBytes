@@ -68,47 +68,7 @@ public extension NetworkingServiceType {
     }
 }
 
-@available(macOS 12.0, *)
-public struct NetworkingService: NetworkingServiceType {
-    public let urlSession: URLSession
-
-    @inlinable
-    public init(urlSession: URLSession = .shared) {
-        self.urlSession = urlSession
-    }
-
-    @inlinable
-    public func finishTasksAndInvalidate() {
-        urlSession.finishTasksAndInvalidate()
-    }
-    
-    @inlinable
-    public func invalidateAndCancel() {
-        urlSession.invalidateAndCancel()
-    }
-    
-    @inlinable
-    public func reset() async {
-        await urlSession.reset()
-    }
-
-    @inlinable
-    public func data(for request: URLRequest) async throws -> (Data, URLResponse) {
-        try await urlSession.data(for: request)
-    }
-
-    @inlinable
-    @available(iOS 15.0, *)
-    public func data(for request: URLRequest, delegate: URLSessionTaskDelegate?) async throws -> (Data, URLResponse) {
-        try await urlSession.data(for: request, delegate: delegate)
-    }
-    
-    @available(iOS 15.0, *)
-    public func bytes(for request: URLRequest, delegate: (URLSessionTaskDelegate)? = nil) async throws -> (URLSession.AsyncBytes, URLResponse) {
-        try await urlSession.bytes(for: request, delegate: delegate)
-    }
-}
-
+extension URLSession: NetworkingServiceType { }
 
 @available(macOS 12.0, *)
 @available(iOS 15.0, *)

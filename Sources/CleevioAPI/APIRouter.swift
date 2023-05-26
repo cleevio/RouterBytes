@@ -7,14 +7,14 @@
 
 import Foundation
 
-public typealias APIRequestBody = any Encodable & Sendable
 public typealias Headers = [String: String]
 
 /**
  A type representing a request for a remote API resource.
 
+ The `APIRouter` protocol defines properties and methods for creating and configuring an API request. The conforming type must define `Response`, `AuthorizationType`, and `RequestBody` associated types to represent the expected response, the authorization mechanism used for the request, and the request body type, respectively.
+
  ## Usage
- The `APIRouter` protocol defines properties and methods for creating and configuring an API request. The conforming type must define `Response` and `AuthorizationType` associated types to represent the expected response and the authorization mechanism used for the request, respectively.
 
  ### Default Values
  The `APIRouter` extension provides default values for some properties:
@@ -24,7 +24,9 @@ public typealias Headers = [String: String]
  - `method`: `.get`
  - `cachePolicy`: `.reloadIgnoringCacheData`
  - `headers`: A computed property that returns the default headers merged with any additional headers.
- - `Note`: To conform to APIRouter, you should implement the following properties:
+ 
+ ### Required Properties
+ To conform to `APIRouter`, you should implement the following properties:
 
     - `defaultHeaders`: The default headers for the API endpoint.
     - `hostname`: The hostname for the API endpoint.
@@ -32,7 +34,8 @@ public typealias Headers = [String: String]
     - `jsonEncoder`: The `JSONEncoder` to use for encoding requests.
     - `path`: The path for the API endpoint.
     - `authType`: The authorization type for the API endpoint.
- - SeeAlso: `APIRouterError`,` `HTTPMethod`, `Headers`, `APIRequestBody`
+
+ - SeeAlso: `APIRouterError`, `HTTPMethod`, `Headers`
  */
 public protocol APIRouter<RequestBody>: Sendable {
     associatedtype Response
@@ -66,6 +69,8 @@ public protocol APIRouter<RequestBody>: Sendable {
     /// The cache policy for the API request. Default: .get
     var cachePolicy: URLRequest.CachePolicy { get }
 
+    /// Converts the `RequestBody` to a `Data` object.
+    /// Returns `nil` if there is no request body.
     func encodedBody() throws -> Data?
 }
 
@@ -76,11 +81,13 @@ public extension APIRouter {
     var cachePolicy: URLRequest.CachePolicy { .reloadIgnoringCacheData }
 
     /// Computed property that merges defaultHeaders and additionalHeaders
+    @inlinable
     var headers: Headers {
         defaultHeaders.merging(additionalHeaders) { _, additionalHeaders in additionalHeaders }
     }
 
     /// Function that converts APIRouter instance to a URL
+    /// - Parameter hostname: The base URL for the API endpoint.
     func asURL(hostname: URL) throws -> URL {
         guard var components = URLComponents(url: hostname, resolvingAgainstBaseURL: false) else {
             throw APIRouterError.invalidHostname
@@ -100,6 +107,7 @@ public extension APIRouter {
     }
 
     /// Converts the APIRequest to a `URLRequest`.
+    /// - Parameter hostname: The base URL for the API endpoint.
     func asURLRequest(hostname: URL) throws -> URLRequest {
         var urlRequest = try URLRequest(url: asURL(hostname: hostname))
 
@@ -137,16 +145,18 @@ public extension APIRouter where RequestBody == Void {
 }
 
 public protocol HasHostname {
+    /// The base URL for the API endpoint.
+
     var hostname: URL { get }
 }
 
 public extension APIRouter where Self: HasHostname {
-    @inlinable
+    /// Function that converts APIRouter instance to a URL using the `hostname` property.
     func asURL() throws -> URL {
         try asURL(hostname: hostname)
     }
-
-    @inlinable
+    
+    /// Converts the APIRequest to a `URLRequest` using the `hostname` property.
     func asURLRequest() throws -> URLRequest {
         try asURLRequest(hostname: hostname)
     }

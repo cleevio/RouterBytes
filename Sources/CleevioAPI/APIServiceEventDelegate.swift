@@ -52,14 +52,18 @@ public protocol APIServiceEventDelegate: Sendable {
 
 public extension APIServiceEventDelegate {
     /// Default implementation of `requestFired(request:)`.
+    @inlinable
     func requestFired(request: URLRequest) { }
 
     /// Default implementation of `responseReceived(data:response:)`.
+    @inlinable
     func responseReceived(data: Data, response: URLResponse) { }
 
     /// Default implementation of `responseDecoded(_:)`.
+    @inlinable
     func responseDecoded<T>(_ value: T) { }
 
     /// Default implementation of `requestFailedWithUnAuthorizedError(request:)`.
+    @inlinable
     func requestFailedWithUnAuthorizedError(request: URLRequest) async { }
 }
