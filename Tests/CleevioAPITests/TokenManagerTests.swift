@@ -12,32 +12,90 @@ import CleevioAPI
 fileprivate var dateProvider = DateProviderMock(date: Date())
 
 @available(iOS 15.0, *)
-final class TokenManagerTests: XCTestCase {
-    var sut: TokenManager<BaseAPIToken, RefreshTokenRouter>!
-    private var tokenRepository: APITokenRepositoryMock<BaseAPIToken>!
-
-    private var onRefreshNetworkCall: ((URLRequest) -> (Data, URLResponse))!
-
-    override func setUp() {
+open class TokenManagerTestCase<AuthorizationType>: XCTestCase {
+    var sut: TokenManager<AuthorizationType, BaseAPIToken, RefreshTokenRouter>!
+    var tokenRepository: APITokenRepositoryMock<BaseAPIToken>!
+    var hostnameProvider: HostnameProvider { urlRequestProvider }
+    var urlRequestProvider: MockURLRequestProvider<BaseAPIToken>!
+    public var onRefreshNetworkCall: ((URLRequest) -> (Data, URLResponse))!
+    
+    override open func setUp() {
         dateProvider = .init(date: Date())
         let networkingService = NetworkingServiceMock(onDataCall: { request, _ in
             self.onRefreshNetworkCall(request)
         })
-
+        
         tokenRepository = APITokenRepositoryMock(apiToken: nil)
-
+        
         onRefreshNetworkCall = { _ in
             XCTFail("Refresh token action should not be called")
             fatalError()
         }
-
+        
+        self.urlRequestProvider = MockURLRequestProvider(hostname: URL(string: "https://cleevio.com")!)
+        
         sut = TokenManager(
-            apiService: APIService(networkingService: networkingService),
+            apiService: APIService(networkingService: networkingService, urlRequestProvider: urlRequestProvider),
             dateProvider: dateProvider,
-            apiTokenRepository: tokenRepository
+            apiTokenRepository: tokenRepository,
+            hostnameProvider: hostnameProvider
         )
     }
+    
+    func setLoggedIn(expiration: Date = Date.distantFuture) {
+        tokenRepository.apiToken.store(.init(
+            accessToken: UUID().uuidString,
+            refreshToken: UUID().uuidString,
+            expiration: expiration
+        ))
+    }
 
+    func refreshingHelper(signedInTokenExpiration: Date,
+                          forceRefresh: Bool,
+                          executeBeforeCheck: (() async throws -> Void)? = nil) async throws {
+        setLoggedIn(expiration: signedInTokenExpiration)
+        
+        let accessToken: String = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI4ZmZiYWJjOS1mMTc5LTQyMmEtYWQ1My0yYWQ3YmQzOTk0YTEiLCJleHAiOjE2NzU3ODI3MjAsImlzcyI6ImNvbS5kcm9ucHJvLm1haW5hcGkiLCJ0eXBlIjoiQUNDRVNTIn0.7OjvRrOZgc8EuCjtOzdUPBZTKhhxm3m5p5oTxryjfPbUdjDAGq5X8HoyN2YFA_UQNRxSb6LLsujTxDEnsnvifQ"
+
+        let refreshToken = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI4ZmZiYWJjOS1mMTc5LTQyMmEtYWQ1My0yYWQ3YmQzOTk0YTEiLCJleHAiOjE2NzU3ODU0MjAsImlzcyI6ImNvbS5kcm9ucHJvLm1haW5hcGkiLCJ0eXBlIjoiUkVGUkVTSCJ9.u87LWGKaCecebc8qS2m37KJG8kT0bVBjBIo1RuuRGMkIpg3Dss4Y_VgNz-k5r2iB1JoDtLUwh1huR9m0vptzHw"
+
+        let refreshResponse = """
+        {
+            "refresh" : "\(refreshToken)",
+            "expiresInS" : 900,
+            "access" : "\(accessToken)"
+        }
+        """.data(using: .utf8)!
+
+        let tokenResponse = try! JSONDecoder().decode(BaseAPIToken.self, from: refreshResponse)
+
+        let expectation = XCTestExpectation(description: "TokenManager should try to refresh token")
+
+        onRefreshNetworkCall = { _ in
+            expectation.fulfill()
+            return (refreshResponse, HTTPURLResponse())
+        }
+        
+        try await executeBeforeCheck?()
+
+        do {
+            let accessToken = try await sut.getAccessToken(forceRefresh: forceRefresh)
+            let refreshToken = try await sut.getRefreshToken()
+
+            XCTAssertEqual(accessToken, tokenResponse.accessToken)
+            XCTAssertEqual(refreshToken, tokenResponse.refreshToken)
+            XCTAssertEqual(tokenRepository.apiToken.value, tokenResponse)
+        } catch {
+            print(error)
+            XCTFail()
+        }
+
+        wait(for: [expectation], timeout: 0.1)
+    }
+}
+    
+@available(iOS 15.0, *)
+final class TokenManagerTests: TokenManagerTestCase<Void> {
     func testRefreshTokenNotLoggedIn() async {
         do {
             _ = try await sut.getRefreshToken()
@@ -81,53 +139,75 @@ final class TokenManagerTests: XCTestCase {
     func testAccessTokenIsRefreshedWithMinuteToExpiration() async throws {
         try await refreshingHelper(signedInTokenExpiration: Date(timeIntervalSinceNow: 60), forceRefresh: false)
     }
+}
 
-    func refreshingHelper(signedInTokenExpiration: Date, forceRefresh: Bool) async throws {
-        setLoggedIn(expiration: signedInTokenExpiration)
-
-        let refreshToken = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI4ZmZiYWJjOS1mMTc5LTQyMmEtYWQ1My0yYWQ3YmQzOTk0YTEiLCJleHAiOjE2NzU3ODU0MjAsImlzcyI6ImNvbS5kcm9ucHJvLm1haW5hcGkiLCJ0eXBlIjoiUkVGUkVTSCJ9.u87LWGKaCecebc8qS2m37KJG8kT0bVBjBIo1RuuRGMkIpg3Dss4Y_VgNz-k5r2iB1JoDtLUwh1huR9m0vptzHw"
-        let accessToken = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI4ZmZiYWJjOS1mMTc5LTQyMmEtYWQ1My0yYWQ3YmQzOTk0YTEiLCJleHAiOjE2NzU3ODI3MjAsImlzcyI6ImNvbS5kcm9ucHJvLm1haW5hcGkiLCJ0eXBlIjoiQUNDRVNTIn0.7OjvRrOZgc8EuCjtOzdUPBZTKhhxm3m5p5oTxryjfPbUdjDAGq5X8HoyN2YFA_UQNRxSb6LLsujTxDEnsnvifQ"
-
-        let refreshResponse = """
-        {
-            "refresh" : "\(refreshToken)",
-            "expiresInS" : 900,
-            "access" : "\(accessToken)"
+@available(iOS 15.0, *)
+final class TokenManagerURLRequestProviderTests: TokenManagerTestCase<CleevioAPI.AuthorizationType> {
+    func testRefreshOnError() async throws {
+        try await refreshingHelper(signedInTokenExpiration: Date.distantFuture, forceRefresh: false) {
+            let router = Self.mockRouter(type: .none)
+            let request = try await self.sut.getURLRequestOnUnAuthorizedError(from: router)
+            XCTAssertEqual(request, try router.asURLRequest(hostname: self.hostnameProvider.hostname(for: router)))
         }
-        """.data(using: .utf8)!
-
-        let tokenResponse = try! JSONDecoder().decode(BaseAPIToken.self, from: refreshResponse)
-
-        let expectation = XCTestExpectation(description: "TokenManager should try to refresh token")
-
-        onRefreshNetworkCall = { _ in
-            expectation.fulfill()
-            return (refreshResponse, HTTPURLResponse())
-        }
-
-        do {
-            let accessToken = try await sut.getAccessToken(forceRefresh: forceRefresh)
-            let refreshToken = try await sut.getRefreshToken()
-
-            XCTAssertEqual(accessToken, tokenResponse.accessToken)
-            XCTAssertEqual(refreshToken, tokenResponse.refreshToken)
-            XCTAssertEqual(tokenRepository.apiToken.value, tokenResponse)
-        } catch {
-            print(error)
-            XCTFail()
-        }
-
-        wait(for: [expectation], timeout: 0.1)
     }
 
-    private func setLoggedIn(expiration: Date = Date.distantFuture) {
-        tokenRepository.apiToken.store(.init(
-            accessToken: UUID().uuidString,
-            refreshToken: UUID().uuidString,
-            expiration: expiration
-        ))
+    func testURLRequestProvidingWithNoneAuthType() async throws {
+        let router = Self.mockRouter(type: .none)
+        let request = try await self.sut.getURLRequest(from: router)
+        XCTAssertEqual(request, try router.asURLRequest(hostname: self.hostnameProvider.hostname(for: router)))
+    }
+
+    func testRefreshTokenOnURLRequest() async throws {
+        try await refreshingHelper(signedInTokenExpiration: Date.distantFuture, forceRefresh: false) {
+            let router = Self.mockRouter(type: .bearer(.accessToken))
+            let request = try await self.sut.getURLRequestOnUnAuthorizedError(from: router)
+            XCTAssertEqual(request, try router.asURLRequest(hostname: self.hostnameProvider.hostname(for: router)).withBearerToken(self.tokenRepository.apiToken.value!.accessToken))
+        }
+    }
+
+    func testURLRequestProvidingWithAccessTokenAuthType() async throws {
+        self.setLoggedIn(expiration: .distantFuture)
+        let router = Self.mockRouter(type: .bearer(.accessToken))
+        let request = try await self.sut.getURLRequest(from: router)
+        XCTAssertEqual(request, try router.asURLRequest(hostname: self.hostnameProvider.hostname(for: router)).withBearerToken(tokenRepository.apiToken.value!.accessToken))
+    }
+
+    func testURLRequestProvidingWithAccessTokenNotLoggedIn() async throws {
+        let router = Self.mockRouter(type: .bearer(.accessToken))
+        do {
+            _ = try await self.sut.getURLRequest(from: router)
+            XCTFail("Error not thrown")
+        } catch TokenManagerError.notLoggedIn {
+            
+        } catch {
+            XCTFail("Wrong password thrown: \(error)")
+        }
+    }
+
+    func testURLRequestProvidingWithRefreshTokenLoggedIn() async throws {
+        self.setLoggedIn(expiration: .distantFuture)
+        let router = Self.mockRouter(type: .bearer(.refreshToken))
+        let request = try await self.sut.getURLRequest(from: router)
+        XCTAssertEqual(request, try router.asURLRequest(hostname: self.hostnameProvider.hostname(for: router)).withBearerToken(tokenRepository.apiToken.value!.refreshToken))
+    }
+
+    func testURLRequestProvidingWithRefreshTokenNotLoggedIn() async throws {
+        let router = Self.mockRouter(type: .bearer(.refreshToken))
+        do {
+            _ = try await self.sut.getURLRequest(from: router)
+            XCTFail("Error not thrown")
+        } catch TokenManagerError.notLoggedIn {
+            
+        } catch {
+            XCTFail("Wrong password thrown: \(error)")
+        }
+    }
+
+    static private func mockRouter(type: AuthorizationType) -> BaseAPIRouter<String, String> {
+        BaseAPIRouter(hostname: URL(string: "https://cleevio.com")!, path: "/blog", authType: type)
     }
 }
+
 
 extension BaseAPIToken: Codable {
     enum CodingKeys: CodingKey {

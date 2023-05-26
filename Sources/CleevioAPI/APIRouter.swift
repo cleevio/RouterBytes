@@ -43,8 +43,6 @@ public protocol APIRouter<RequestBody>: Sendable {
     /// The default headers for the API endpoint.
     var defaultHeaders: Headers { get }
     /// The hostname for the API endpoint.
-    var hostname: URL { get }
-    /// The JSON decoder to use for decoding responses.
     var jsonDecoder: JSONDecoder { get }
     /// The JSON encoder to use for encoding requests.
     var jsonEncoder: JSONEncoder { get }
@@ -83,7 +81,7 @@ public extension APIRouter {
     }
 
     /// Function that converts APIRouter instance to a URL
-    func asURL() throws -> URL {
+    func asURL(hostname: URL) throws -> URL {
         guard var components = URLComponents(url: hostname, resolvingAgainstBaseURL: false) else {
             throw APIRouterError.invalidHostname
         }
@@ -102,8 +100,8 @@ public extension APIRouter {
     }
 
     /// Converts the APIRequest to a `URLRequest`.
-    func asURLRequest() throws -> URLRequest {
-        var urlRequest = try URLRequest(url: asURL())
+    func asURLRequest(hostname: URL) throws -> URLRequest {
+        var urlRequest = try URLRequest(url: asURL(hostname: hostname))
 
         urlRequest.httpMethod = method.rawValue
 
@@ -135,5 +133,21 @@ public extension APIRouter where RequestBody == Void {
     @inlinable
     func encodedBody() throws -> Data? {
         nil
+    }
+}
+
+public protocol HasHostname {
+    var hostname: URL { get }
+}
+
+public extension APIRouter where Self: HasHostname {
+    @inlinable
+    func asURL() throws -> URL {
+        try asURL(hostname: hostname)
+    }
+
+    @inlinable
+    func asURLRequest() throws -> URLRequest {
+        try asURLRequest(hostname: hostname)
     }
 }

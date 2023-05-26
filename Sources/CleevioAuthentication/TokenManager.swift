@@ -48,9 +48,11 @@ public protocol TokenManagerType<APIToken>: AnyObject {
 
 /// A token manager that handles the retrieval and refreshing of API tokens.
 @available(macOS 12.0, *)
-public final actor TokenManager<APIToken: CodableAPITokentType, RefreshTokenAPIRouterType: RefreshTokenAPIRouter>: TokenManagerType where APIToken == RefreshTokenAPIRouterType.Response {
+public final actor TokenManager<AuthorizationType, APIToken: CodableAPITokentType, RefreshTokenAPIRouterType: RefreshTokenAPIRouter>: TokenManagerType where APIToken == RefreshTokenAPIRouterType.Response {
     private var refreshingTask: Task<APIToken, Error>?
     private let apiService: APIService<APIToken>
+    @usableFromInline
+    let hostnameProvider: HostnameProvider
     private let dateProvider: any DateProviderType
     @usableFromInline
     let apiTokenRepository: any APITokenRepositoryType<APIToken>
@@ -62,16 +64,18 @@ public final actor TokenManager<APIToken: CodableAPITokentType, RefreshTokenAPIR
     ///   - dateProvider: The `DateProviderType` to use for getting the current date.
     ///   - apiTokenRepository: The `APITokenRepositoryType` to use for storing and retrieving API tokens.
     public init(apiService: APIService<APIToken>,
-         dateProvider: any DateProviderType,
-         apiTokenRepository: any APITokenRepositoryType<APIToken>) {
+                dateProvider: any DateProviderType,
+                apiTokenRepository: any APITokenRepositoryType<APIToken>,
+                hostnameProvider: any HostnameProvider) {
         self.apiService = apiService
         self.dateProvider = dateProvider
         self.apiTokenRepository = apiTokenRepository
+        self.hostnameProvider = hostnameProvider
     }
 
     /// The currently stored API token.
     @usableFromInline
-    var apiToken: APIToken {
+    nonisolated var apiToken: APIToken {
         get throws {
             guard let apiToken = apiTokenRepository.apiToken.value else { throw TokenManagerError.notLoggedIn }
 
@@ -140,9 +144,33 @@ public final actor TokenManager<APIToken: CodableAPITokentType, RefreshTokenAPIR
         Task {
             let router = RefreshTokenAPIRouterType()
 
-            let urlRequest = try router.asURLRequest().withBearerToken(getRefreshToken().description)
+            let urlRequest = try router.asURLRequest(hostname: hostnameProvider.hostname(for: router)).withBearerToken(getRefreshToken().description)
 
             return try await apiService.getDecoded(from: try await apiService.getDataFromNetwork(for: urlRequest), decoder: router.jsonDecoder)
         }
+    }
+}
+
+@available(macOS 12.0, *)
+extension TokenManager: URLRequestProvider where AuthorizationType == CleevioAPI.AuthorizationType {
+    @inlinable
+    public func getURLRequest<RouterType>(from router: RouterType) async throws -> URLRequest where RouterType : APIRouter, AuthorizationType == RouterType.AuthorizationType {
+        var urlRequest: URLRequest { get throws { try router.asURLRequest(hostname: hostnameProvider.hostname(for: router)) } }
+        switch router.authType {
+        case .bearer(.accessToken):
+            let accessToken = try await getAccessToken(forceRefresh: false)
+            return try urlRequest.withBearerToken(accessToken.description)
+        case .bearer(.refreshToken):
+            return try urlRequest.withBearerToken(getRefreshToken().description)
+        case .none:
+            return try urlRequest
+        }
+    }
+    
+    @inlinable
+    public func getURLRequestOnUnAuthorizedError<RouterType>(from router: RouterType) async throws -> URLRequest where RouterType : APIRouter, AuthorizationType == RouterType.AuthorizationType {
+        _ = try await getAccessToken(forceRefresh: true)
+
+        return try await getURLRequest(from: router)
     }
 }

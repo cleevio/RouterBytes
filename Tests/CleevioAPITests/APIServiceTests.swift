@@ -13,13 +13,15 @@ final class APIServiceTests: XCTestCase {
     var networkingService: NetworkingServiceMock!
     var apiService: APIService<AuthorizationType>!
     var delegate: MockAPIServiceEventDelegate!
+    var mockURLRequestProvider: MockURLRequestProvider<AuthorizationType>!
     
     override func setUp() {
         super.setUp()
         
         networkingService = NetworkingServiceMock()
         delegate = MockAPIServiceEventDelegate()
-        apiService = APIService(networkingService: networkingService, eventDelegate: delegate)
+        mockURLRequestProvider = MockURLRequestProvider(hostname: URL(string: "https://cleevio.com")!)
+        apiService = APIService(networkingService: networkingService, urlRequestProvider: mockURLRequestProvider, eventDelegate: delegate)
     }
     
     override func tearDown() {
@@ -39,7 +41,7 @@ final class APIServiceTests: XCTestCase {
             (responseData, receivedResponse)
         }
         
-        let response = try await apiService.getData(from: router)
+        let response = try await apiService.getResponse(from: router)
         
         XCTAssertEqual(response, expectedResponse)
         XCTAssertEqual(delegate.receivedData, responseData)
@@ -55,7 +57,6 @@ final class APIServiceTests: XCTestCase {
 
         let firstRequest = XCTestExpectation(description: "First request should fire")
         let secondRequest = XCTestExpectation(description: "Second request should fire")
-
         
         networkingService.onDataCall = { request, _ in
             XCTAssertEqual(expectedRequest, request)
@@ -72,12 +73,14 @@ final class APIServiceTests: XCTestCase {
     
         do {
             // Perform the data request, which should trigger token refreshing and retry the request
-            _ = try await apiService.getData(from: router)
+            _ = try await apiService.getResponse(from: router)
             XCTFail()
         } catch {
             // Ensure that the request was retried and succeeded
             XCTAssertEqual(delegate.receivedResponse, receivedResponse)
             XCTAssertEqual(delegate.firedRequest, expectedRequest)
+            XCTAssertTrue(mockURLRequestProvider.getURLRequestCalled)
+            XCTAssertFalse(mockURLRequestProvider.getURLRequestOnUnAuthorizedErrorCalled)
 
             // Wait for expectations to be fulfilled
             wait(for: [firstRequest, secondRequest], timeout: 1)
@@ -111,7 +114,7 @@ final class APIServiceTests: XCTestCase {
         }
     
         // Perform the data request, which should trigger token refreshing and retry the request
-        let response = try await apiService.getData(from: router)
+        let response = try await apiService.getResponse(from: router)
 
         // Ensure that the request was retried and succeeded
         XCTAssertEqual(delegate.receivedResponse, receivedSuccessResponse)
@@ -119,6 +122,8 @@ final class APIServiceTests: XCTestCase {
         XCTAssertEqual(delegate.decodedValue as? String, expectedData)
         XCTAssertEqual(delegate.firedRequest, expectedRequest)
         XCTAssertNotNil(delegate.decodedValue as? String)
+        XCTAssertTrue(mockURLRequestProvider.getURLRequestCalled)
+        XCTAssertFalse(mockURLRequestProvider.getURLRequestOnUnAuthorizedErrorCalled)
 
         // Wait for expectations to be fulfilled
         wait(for: [firstRequest, secondRequest], timeout: 1)
@@ -150,7 +155,7 @@ final class APIServiceTests: XCTestCase {
         }
     
         // Perform the data request, which should trigger token refreshing and retry the request
-        let response = try await apiService.getData(from: router)
+        let response = try await apiService.getResponse(from: router)
 
         // Ensure that the request was retried and succeeded
         XCTAssertEqual(delegate.receivedResponse, receivedSuccessResponse)
@@ -158,7 +163,87 @@ final class APIServiceTests: XCTestCase {
         XCTAssertEqual(delegate.decodedValue as? String, expectedData)
         XCTAssertEqual(delegate.firedRequest, expectedRequest)
         XCTAssertNotNil(delegate.decodedValue as? String)
+        XCTAssertTrue(mockURLRequestProvider.getURLRequestCalled)
+        XCTAssertFalse(mockURLRequestProvider.getURLRequestOnUnAuthorizedErrorCalled)
 
+        // Wait for expectations to be fulfilled
+        wait(for: [firstRequest, secondRequest], timeout: 1)
+    }
+
+    func testRetryOnAuthorizedError() async throws {
+        let router: BaseAPIRouter<String, String> = Self.mockRouter()
+        let expectedRequest = try router.asURLRequest()
+        let receivedSuccessResponse = HTTPURLResponse(url: expectedRequest.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+        
+        let expectedData = "Hello, World!"
+        let responseData = try JSONEncoder().encode(expectedData)
+
+        let firstRequest = XCTestExpectation(description: "First request should fire")
+        let secondRequest = XCTestExpectation(description: "Second request should fire")
+        
+        networkingService.onDataCall = { request, _ in
+            XCTAssertEqual(expectedRequest, request)
+            firstRequest.fulfill()
+
+            self.networkingService.onDataCall = { request, _ in
+                XCTAssertEqual(expectedRequest, request)
+                secondRequest.fulfill()
+                return (responseData, receivedSuccessResponse)
+            }
+            
+            return (Data(), HTTPURLResponse(url: request.url!, statusCode: 401, httpVersion: "", headerFields: [:])! as URLResponse)
+        }
+    
+        // Perform the data request, which should trigger token refreshing and retry the request
+        let response = try await apiService.getResponse(from: router)
+
+        // Ensure that the request was retried and succeeded
+        XCTAssertEqual(delegate.receivedResponse, receivedSuccessResponse)
+        XCTAssertEqual(response, expectedData)
+        XCTAssertEqual(delegate.decodedValue as? String, expectedData)
+        XCTAssertEqual(delegate.firedRequest, expectedRequest)
+        XCTAssertNotNil(delegate.decodedValue as? String)
+        XCTAssertTrue(mockURLRequestProvider.getURLRequestCalled)
+        XCTAssertTrue(mockURLRequestProvider.getURLRequestOnUnAuthorizedErrorCalled)
+
+        // Wait for expectations to be fulfilled
+        wait(for: [firstRequest, secondRequest], timeout: 1)
+    }
+
+    func testRetryAndFailureOnAuthorizedError() async throws {
+        let router: BaseAPIRouter<String, String> = Self.mockRouter()
+        let expectedRequest = try router.asURLRequest()
+        let receivedResponse = HTTPURLResponse(url: expectedRequest.url!, statusCode: 401, httpVersion: "", headerFields: [:])! as URLResponse
+        
+        let firstRequest = XCTestExpectation(description: "First request should fire")
+        let secondRequest = XCTestExpectation(description: "Second request should fire")
+
+        networkingService.onDataCall = { request, _ in
+            XCTAssertEqual(expectedRequest, request)
+            firstRequest.fulfill()
+
+            self.networkingService.onDataCall = { request, _ in
+                XCTAssertEqual(expectedRequest, request)
+                secondRequest.fulfill()
+                return (Data(), receivedResponse)
+            }
+            
+            return (Data(), receivedResponse)
+        }
+    
+        do {
+            _ = try await apiService.getResponse(from: router)
+            XCTFail("Expected failure")
+        } catch ResponseValidationError.unauthorized {
+            // Ensure that the request was retried and succeeded
+            XCTAssertEqual(delegate.receivedResponse, receivedResponse)
+            XCTAssertEqual(delegate.firedRequest, expectedRequest)
+            XCTAssertTrue(mockURLRequestProvider.getURLRequestCalled)
+            XCTAssertTrue(mockURLRequestProvider.getURLRequestOnUnAuthorizedErrorCalled)
+        } catch {
+            XCTFail("Received different error than expected: \(error)")
+        }
+        // Perform the data request, which should trigger token refreshing and retry the request
         // Wait for expectations to be fulfilled
         wait(for: [firstRequest, secondRequest], timeout: 1)
     }

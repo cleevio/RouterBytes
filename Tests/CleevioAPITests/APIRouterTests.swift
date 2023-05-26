@@ -159,5 +159,4 @@ final class APIRouterTests: XCTestCase {
         XCTAssertEqual(urlRequest.httpBody, try JSONEncoder().encode(updateUserRequest))
         XCTAssertEqual(urlRequest.cachePolicy, .useProtocolCachePolicy)
     }
-
 }
