@@ -45,7 +45,7 @@ public protocol APIRouter<RequestBody>: Sendable {
     // Properties to be specified within the project APIRouter protocol
     /// The default headers for the API endpoint.
     var defaultHeaders: Headers { get }
-    /// The hostname for the API endpoint.
+    /// The JSON decoder to use for decoding responses.
     var jsonDecoder: JSONDecoder { get }
     /// The JSON encoder to use for encoding requests.
     var jsonEncoder: JSONEncoder { get }
