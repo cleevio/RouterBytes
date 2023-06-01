@@ -3,11 +3,14 @@
 
 import PackageDescription
 
-let swiftSettings = [SwiftSetting.unsafeFlags([
-    "-Xfrontend", "-strict-concurrency=complete",
-    "-Xfrontend", "-warn-concurrency",
-    "-Xfrontend", "-enable-actor-data-race-checks",
-])]
+let swiftSettings: [SwiftSetting] = [
+// Only for development checks
+//    SwiftSetting.unsafeFlags([
+//        "-Xfrontend", "-strict-concurrency=complete",
+//        "-Xfrontend", "-warn-concurrency",
+//        "-Xfrontend", "-enable-actor-data-race-checks",
+//    ])
+]
 
 let package = Package(
     name: "CleevioAPILibrary",
