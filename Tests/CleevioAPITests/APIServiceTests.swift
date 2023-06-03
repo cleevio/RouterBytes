@@ -47,6 +47,7 @@ final class APIServiceTests: XCTestCase {
         XCTAssertEqual(delegate.receivedData, responseData)
         XCTAssertEqual(delegate.receivedResponse, receivedResponse)
         XCTAssertEqual(delegate.firedRequest, request)
+        XCTAssertEqual(delegate.firedRequestFromResponseReceived, request)
         XCTAssertNotNil(delegate.decodedValue as? String)
     }
 
@@ -79,6 +80,7 @@ final class APIServiceTests: XCTestCase {
             // Ensure that the request was retried and succeeded
             XCTAssertEqual(delegate.receivedResponse, receivedResponse)
             XCTAssertEqual(delegate.firedRequest, expectedRequest)
+            XCTAssertEqual(delegate.firedRequestFromResponseReceived, expectedRequest)
             XCTAssertTrue(mockURLRequestProvider.getURLRequestCalled)
             XCTAssertFalse(mockURLRequestProvider.getURLRequestOnUnAuthorizedErrorCalled)
 
@@ -121,6 +123,7 @@ final class APIServiceTests: XCTestCase {
         XCTAssertEqual(response, expectedData)
         XCTAssertEqual(delegate.decodedValue as? String, expectedData)
         XCTAssertEqual(delegate.firedRequest, expectedRequest)
+        XCTAssertEqual(delegate.firedRequestFromResponseReceived, expectedRequest)
         XCTAssertNotNil(delegate.decodedValue as? String)
         XCTAssertTrue(mockURLRequestProvider.getURLRequestCalled)
         XCTAssertFalse(mockURLRequestProvider.getURLRequestOnUnAuthorizedErrorCalled)
@@ -162,6 +165,7 @@ final class APIServiceTests: XCTestCase {
         XCTAssertEqual(response, expectedData)
         XCTAssertEqual(delegate.decodedValue as? String, expectedData)
         XCTAssertEqual(delegate.firedRequest, expectedRequest)
+        XCTAssertEqual(delegate.firedRequestFromResponseReceived, expectedRequest)
         XCTAssertNotNil(delegate.decodedValue as? String)
         XCTAssertTrue(mockURLRequestProvider.getURLRequestCalled)
         XCTAssertFalse(mockURLRequestProvider.getURLRequestOnUnAuthorizedErrorCalled)
@@ -202,6 +206,7 @@ final class APIServiceTests: XCTestCase {
         XCTAssertEqual(response, expectedData)
         XCTAssertEqual(delegate.decodedValue as? String, expectedData)
         XCTAssertEqual(delegate.firedRequest, expectedRequest)
+        XCTAssertEqual(delegate.firedRequestFromResponseReceived, expectedRequest)
         XCTAssertNotNil(delegate.decodedValue as? String)
         XCTAssertTrue(mockURLRequestProvider.getURLRequestCalled)
         XCTAssertTrue(mockURLRequestProvider.getURLRequestOnUnAuthorizedErrorCalled)
@@ -238,6 +243,7 @@ final class APIServiceTests: XCTestCase {
             // Ensure that the request was retried and succeeded
             XCTAssertEqual(delegate.receivedResponse, receivedResponse)
             XCTAssertEqual(delegate.firedRequest, expectedRequest)
+            XCTAssertEqual(delegate.firedRequestFromResponseReceived, expectedRequest)
             XCTAssertTrue(mockURLRequestProvider.getURLRequestCalled)
             XCTAssertTrue(mockURLRequestProvider.getURLRequestOnUnAuthorizedErrorCalled)
         } catch {
@@ -258,13 +264,15 @@ final class MockAPIServiceEventDelegate: @unchecked Sendable, APIServiceEventDel
     var firedRequest: URLRequest?
     var receivedData: Data?
     var receivedResponse: URLResponse?
+    var firedRequestFromResponseReceived: URLRequest?
     var decodedValue: Any?
     
     func requestFired(request: URLRequest) {
         firedRequest = request
     }
     
-    func responseReceived(data: Data, response: URLResponse) {
+    func responseReceived(from request: URLRequest, data: Data, response: URLResponse) {
+        firedRequestFromResponseReceived = request
         receivedData = data
         receivedResponse = response
     }
