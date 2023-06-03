@@ -8,10 +8,12 @@
 import Foundation
 import CleevioAPI
 
+@available(macOS 10.15.0, *)
 public protocol APITokenAuthorizationType {
     func authorizedRequest(urlRequest: URLRequest, with tokenManager: some TokenManagerType) async throws -> URLRequest
 }
 
+@available(macOS 10.15.0, *)
 extension CleevioAPI.AuthorizationType: APITokenAuthorizationType {
     public func authorizedRequest(urlRequest: URLRequest, with tokenManager: some TokenManagerType) async throws -> URLRequest {
         switch self {

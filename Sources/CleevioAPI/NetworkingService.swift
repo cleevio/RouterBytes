@@ -7,6 +7,10 @@
 
 import Foundation
 
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+
 @available(macOS 12.0, *)
 public protocol NetworkingServiceType: Sendable {
     /// Invalidates the session, allowing any outstanding tasks to finish.
