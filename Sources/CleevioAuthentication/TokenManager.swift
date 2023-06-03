@@ -56,7 +56,7 @@ public protocol TokenManagerType<APIToken>: AnyObject {
 /// A token manager that handles the retrieval and refreshing of API tokens.
 @available(macOS 12.0, *)
 public final actor TokenManager<
-    AuthorizationType,
+    AuthorizationType: APITokenAuthorizationType,
     APIToken: CodableAPITokentType,
     RefreshTokenAPIRouterType: RefreshTokenAPIRouter,
     DateProvider: DateProviderType,
@@ -180,19 +180,11 @@ public final actor TokenManager<
 }
 
 @available(macOS 12.0, *)
-extension TokenManager: URLRequestProvider where AuthorizationType == CleevioAPI.AuthorizationType {
-    @inlinable
-    public func getURLRequest<RouterType>(from router: RouterType) async throws -> URLRequest where RouterType : APIRouter, AuthorizationType == RouterType.AuthorizationType {
+extension TokenManager: URLRequestProvider {
+    public func getURLRequest<RouterType>(from router: RouterType) async throws -> URLRequest where RouterType : CleevioAPI.APIRouter, AuthorizationType == RouterType.AuthorizationType {
         var urlRequest: URLRequest { get throws { try router.asURLRequest(hostname: hostnameProvider.hostname(for: router)) } }
-        switch router.authType {
-        case .bearer(.accessToken):
-            let accessToken = try await getAccessToken(forceRefresh: false)
-            return try urlRequest.withBearerToken(accessToken.description)
-        case .bearer(.refreshToken):
-            return try urlRequest.withBearerToken(getRefreshToken().description)
-        case .none:
-            return try urlRequest
-        }
+
+        return try await router.authType.authorize(urlRequest: try urlRequest, with: self)
     }
     
     @inlinable

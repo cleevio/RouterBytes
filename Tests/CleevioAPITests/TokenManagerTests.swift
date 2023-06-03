@@ -12,7 +12,7 @@ import CleevioAPI
 fileprivate var dateProvider = DateProviderMock(date: Date())
 
 @available(iOS 15.0, *)
-open class TokenManagerTestCase<AuthorizationType>: XCTestCase {
+open class TokenManagerTestCase<AuthorizationType: APITokenAuthorizationType>: XCTestCase {
     var sut: TokenManager<AuthorizationType, BaseAPIToken, RefreshTokenRouter, DateProviderMock, MockURLRequestProvider<AuthorizationType>, APITokenRepositoryMock<BaseAPIToken>>!
     var tokenRepository: APITokenRepositoryMock<BaseAPIToken>!
     var hostnameProvider: HostnameProvider { urlRequestProvider }
@@ -95,7 +95,7 @@ open class TokenManagerTestCase<AuthorizationType>: XCTestCase {
 }
     
 @available(iOS 15.0, *)
-final class TokenManagerTests: TokenManagerTestCase<Void> {
+final class TokenManagerTests: TokenManagerTestCase<AuthorizationType> {
     func testRefreshTokenNotLoggedIn() async {
         do {
             _ = try await sut.getRefreshToken()
