@@ -235,7 +235,7 @@ extension BaseAPIToken: Codable {
     }
 }
 
-struct RefreshTokenRouter: RefreshTokenAPIRouter, APIRouter {
+struct RefreshTokenRouter: APIRouter {
     typealias Response = BaseAPIToken
 
     var defaultHeaders: CleevioAPI.Headers { [:] }
@@ -244,4 +244,12 @@ struct RefreshTokenRouter: RefreshTokenAPIRouter, APIRouter {
     var jsonEncoder: JSONEncoder = .init()
     var path: String { "" }
     var authType: CleevioAPI.AuthorizationType { .bearer(.refreshToken) }
+}
+
+extension RefreshTokenRouter: RefreshTokenAPIRouter {
+    typealias APIToken = BaseAPIToken
+
+    init(previousToken: BaseAPIToken) {
+        self.init()
+    }
 }

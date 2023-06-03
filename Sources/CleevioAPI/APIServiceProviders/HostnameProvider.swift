@@ -32,8 +32,7 @@ public extension HostnameProvider {
 /// A basic hostname provider that returns a fixed hostname for any given API router.
 public struct BaseHostnameProvider: HostnameProvider {
     /// The fixed hostname used by this provider.
-    @usableFromInline
-    let hostname: URL
+    public let hostname: URL
     
     /// Initializes a new BaseHostnameProvider with the given hostname.
     ///

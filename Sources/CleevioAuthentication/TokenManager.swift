@@ -48,14 +48,13 @@ public protocol TokenManagerType<APIToken>: AnyObject {
 
 /// A token manager that handles the retrieval and refreshing of API tokens.
 @available(macOS 12.0, *)
-public final actor TokenManager<AuthorizationType, APIToken: CodableAPITokentType, RefreshTokenAPIRouterType: RefreshTokenAPIRouter>: TokenManagerType where APIToken == RefreshTokenAPIRouterType.Response {
+public final actor TokenManager<AuthorizationType, APIToken: CodableAPITokentType, RefreshTokenAPIRouterType: RefreshTokenAPIRouter>: TokenManagerType where APIToken == RefreshTokenAPIRouterType.APIToken {
     private var refreshingTask: Task<APIToken, Error>?
     private let apiService: APIService<APIToken>
     @usableFromInline
     let hostnameProvider: HostnameProvider
     private let dateProvider: any DateProviderType
-    @usableFromInline
-    let apiTokenRepository: any APITokenRepositoryType<APIToken>
+    public let apiTokenRepository: any APITokenRepositoryType<APIToken>
 
     /// Initializes a new instance of `TokenManager`.
     ///
@@ -142,9 +141,11 @@ public final actor TokenManager<AuthorizationType, APIToken: CodableAPITokentTyp
     /// Creates a task to refresh token
     private func refreshTokenTask() -> Task<APIToken, Error> {
         Task {
-            let router = RefreshTokenAPIRouterType()
+            guard let previousToken = apiTokenRepository.apiToken.value else { throw TokenManagerError.notLoggedIn }
 
-            let urlRequest = try router.asURLRequest(hostname: hostnameProvider.hostname(for: router)).withBearerToken(getRefreshToken().description)
+            let router = RefreshTokenAPIRouterType(previousToken: previousToken)
+
+            let urlRequest = try router.asURLRequest(hostname: hostnameProvider.hostname(for: router)).withBearerToken(previousToken.accessToken.description)
 
             return try await apiService.getDecoded(from: try await apiService.getDataFromNetwork(for: urlRequest), decoder: router.jsonDecoder)
         }
