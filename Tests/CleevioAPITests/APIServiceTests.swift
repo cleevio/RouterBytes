@@ -11,7 +11,7 @@ import CleevioAPI
 @available(iOS 15.0, *)
 final class APIServiceTests: XCTestCase {
     var networkingService: NetworkingServiceMock!
-    var apiService: APIService<AuthorizationType>!
+    var apiService: APIService<AuthorizationType, NetworkingServiceMock, MockURLRequestProvider<AuthorizationType>>!
     var delegate: MockAPIServiceEventDelegate!
     var mockURLRequestProvider: MockURLRequestProvider<AuthorizationType>!
     

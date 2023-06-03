@@ -35,14 +35,14 @@ import Foundation
  ```
  */
 @available(macOS 12.0, *)
-open class APIService<AuthorizationType>: @unchecked Sendable {
+open class APIService<AuthorizationType, NetworkingService: NetworkingServiceType, URLRequestProvider>: @unchecked Sendable where URLRequestProvider: CleevioAPI.URLRequestProvider<AuthorizationType> {
     /// The networking service used to perform network requests.
-    public final let networkingService: NetworkingServiceType
+    public final let networkingService: NetworkingService
     
     /// An optional delegate that can be used to receive events from the `APIService` object.
     public final let eventDelegate: APIServiceEventDelegate?
     
-    public final let urlRequestProvider: any URLRequestProvider<AuthorizationType>
+    public final let urlRequestProvider: URLRequestProvider
     
     /**
      Initializes an `APIService` object with specified networking service, URL request provider, and an optional event delegate.
@@ -52,8 +52,8 @@ open class APIService<AuthorizationType>: @unchecked Sendable {
      - Parameter eventDelegate: An optional event delegate to handle events related to the network requests. Defaults to `nil`.
      */
     @inlinable
-    public init(networkingService: NetworkingServiceType = URLSession.shared,
-                urlRequestProvider: any URLRequestProvider<AuthorizationType>,
+    public init(networkingService: NetworkingService = URLSession.shared,
+                urlRequestProvider: URLRequestProvider,
                 eventDelegate: APIServiceEventDelegate? = nil) {
         self.networkingService = networkingService
         self.eventDelegate = eventDelegate
@@ -102,6 +102,7 @@ open class APIService<AuthorizationType>: @unchecked Sendable {
      - Note: `RouterType.AuthorizationType` must match the `AuthorizationType` of the `APIService` instance.
      */
     @discardableResult
+    @inlinable
     open func getData<RouterType: APIRouter>(for router: RouterType) async throws -> Data where RouterType.AuthorizationType == AuthorizationType {
         do {
             return try await getDataFromNetwork(for: try await getURLRequest(from: router))

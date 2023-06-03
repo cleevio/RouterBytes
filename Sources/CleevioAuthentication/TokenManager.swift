@@ -60,11 +60,13 @@ public final actor TokenManager<
     APIToken: CodableAPITokentType,
     RefreshTokenAPIRouterType: RefreshTokenAPIRouter,
     DateProvider: DateProviderType,
+    NetworkingService: NetworkingServiceType,
+    URLRequestProvider,
     HostnameProviderType: HostnameProvider,
     TokenRepository: APITokenRepositoryType<APIToken>
->: TokenManagerType where APIToken == RefreshTokenAPIRouterType.APIToken {
+>: TokenManagerType where APIToken == RefreshTokenAPIRouterType.APIToken, URLRequestProvider: CleevioAPI.URLRequestProvider<AuthorizationType> {
     private var refreshingTask: Task<APIToken, Error>?
-    private let apiService: APIService<AuthorizationType>
+    private let apiService: APIService<AuthorizationType, NetworkingService, URLRequestProvider>
     @usableFromInline
     let hostnameProvider: HostnameProviderType
     private let dateProvider: DateProvider
@@ -76,10 +78,13 @@ public final actor TokenManager<
     ///   - apiService: The `APIService` to use for API requests.
     ///   - dateProvider: The `DateProviderType` to use for getting the current date.
     ///   - apiTokenRepository: The `APITokenRepositoryType` to use for storing and retrieving API tokens.
-    public init(apiService: APIService<AuthorizationType>,
+    public init(apiService: APIService<AuthorizationType, NetworkingService, URLRequestProvider>,
                 dateProvider: DateProvider = CleevioAuthentication.DateProvider(),
                 apiTokenRepository: TokenRepository,
-                hostnameProvider: HostnameProviderType) {
+                hostnameProvider: HostnameProviderType,
+                authorizationType: AuthorizationType.Type = AuthorizationType.self,
+                apiToken: APIToken.Type = APIToken.self,
+                refreshTokenAPIRouterType: RefreshTokenAPIRouterType.Type = RefreshTokenAPIRouterType.self) {
         self.apiService = apiService
         self.dateProvider = dateProvider
         self.apiTokenRepository = apiTokenRepository
@@ -180,7 +185,7 @@ public final actor TokenManager<
 }
 
 @available(macOS 12.0, *)
-extension TokenManager: URLRequestProvider {
+extension TokenManager: CleevioAPI.URLRequestProvider {
     public func getURLRequest<RouterType>(from router: RouterType) async throws -> URLRequest where RouterType : CleevioAPI.APIRouter, AuthorizationType == RouterType.AuthorizationType {
         var urlRequest: URLRequest { get throws { try router.asURLRequest(hostname: hostnameProvider.hostname(for: router)) } }
 
