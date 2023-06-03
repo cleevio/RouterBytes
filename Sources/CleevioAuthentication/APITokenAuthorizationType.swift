@@ -9,11 +9,11 @@ import Foundation
 import CleevioAPI
 
 public protocol APITokenAuthorizationType {
-    func authorize(urlRequest: URLRequest, with tokenManager: some TokenManagerType) async throws -> URLRequest
+    func authorizedRequest(urlRequest: URLRequest, with tokenManager: some TokenManagerType) async throws -> URLRequest
 }
 
 extension CleevioAPI.AuthorizationType: APITokenAuthorizationType {
-    public func authorize(urlRequest: URLRequest, with tokenManager: some TokenManagerType) async throws -> URLRequest {
+    public func authorizedRequest(urlRequest: URLRequest, with tokenManager: some TokenManagerType) async throws -> URLRequest {
         switch self {
         case let .bearer(tokenType):
             let token: String

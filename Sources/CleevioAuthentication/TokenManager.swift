@@ -184,7 +184,7 @@ extension TokenManager: URLRequestProvider {
     public func getURLRequest<RouterType>(from router: RouterType) async throws -> URLRequest where RouterType : CleevioAPI.APIRouter, AuthorizationType == RouterType.AuthorizationType {
         var urlRequest: URLRequest { get throws { try router.asURLRequest(hostname: hostnameProvider.hostname(for: router)) } }
 
-        return try await router.authType.authorize(urlRequest: try urlRequest, with: self)
+        return try await router.authType.authorizedRequest(urlRequest: try urlRequest, with: self)
     }
     
     @inlinable

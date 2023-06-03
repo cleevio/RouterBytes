@@ -38,17 +38,17 @@ public extension URLRequestProvider {
 }
 
 /// A basic URLRequest provider that creates URLRequests for a given API router.
-public struct BaseURLRequestProvider<AuthorizationType>: URLRequestProvider {
-    /// Initializes a new BaseURLRequestProvider with the given hostname.
-    ///
-    /// - Parameter hostname: The base URL for the API requests.
-    @inlinable
-    public init(hostname: URL) {
-        self.hostname = hostname
-    }
-    
+public struct BaseURLRequestProvider<AuthorizationType, HostnameProvider: CleevioAPI.HostnameProvider>: URLRequestProvider {
     /// The base URL for the API requests.
-    public let hostname: URL
+    public let hostnameProvider: HostnameProvider
+
+    /// Initializes a new BaseURLRequestProvider with the given HostnameProvider.
+    ///
+    /// - Parameter hostnameProvider: The HostnameProvider for the API requests.
+    @inlinable
+    public init(hostnameProvider: HostnameProvider) {
+        self.hostnameProvider = hostnameProvider
+    }
 
     /// Returns a URLRequest for the given API router.
     ///
@@ -57,18 +57,28 @@ public struct BaseURLRequestProvider<AuthorizationType>: URLRequestProvider {
     /// - Throws: An error if the URLRequest could not be created.
     @inlinable
     public func getURLRequest<RouterType>(from router: RouterType) async throws -> URLRequest where RouterType : APIRouter, AuthorizationType == RouterType.AuthorizationType {
-        try router.asURLRequest(hostname: hostname)
+        try router.asURLRequest(hostname: hostnameProvider.hostname(for: router))
     }
 }
 
-extension BaseURLRequestProvider: HostnameProvider {
+extension BaseURLRequestProvider where HostnameProvider == CleevioAPI.BaseHostnameProvider {
+    /// Initializes a new BaseURLRequestProvider with the given hostname as a BaseHostnameProvider.
+    ///
+    /// - Parameter hostname: The base URL for the API requests.
+    @inlinable
+    public init(hostname: URL) {
+        self.hostnameProvider = HostnameProvider(hostname: hostname)
+    }
+}
+
+extension BaseURLRequestProvider: CleevioAPI.HostnameProvider {
     /// Returns the hostname for the given API router.
     ///
     /// - Parameter router: The API router to get the hostname for.
     /// - Returns: The hostname for the given API router.
     @inlinable
     public func hostname(for router: some APIRouter) -> URL {
-        hostname
+        hostnameProvider.hostname(for: router)
     }
 }
 
@@ -80,7 +90,7 @@ public class MockURLRequestProvider<AuthorizationType>: URLRequestProvider {
     public private(set) var getURLRequestOnUnAuthorizedErrorCalled = false
 
     @usableFromInline
-    let baseURLProvider: BaseURLRequestProvider<AuthorizationType>
+    let baseURLProvider: BaseURLRequestProvider<AuthorizationType, BaseHostnameProvider>
     
     /// Initializes a new MockURLRequestProvider with the given hostname.
     ///
