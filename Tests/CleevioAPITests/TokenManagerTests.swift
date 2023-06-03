@@ -13,7 +13,7 @@ fileprivate var dateProvider = DateProviderMock(date: Date())
 
 @available(iOS 15.0, *)
 open class TokenManagerTestCase<AuthorizationType>: XCTestCase {
-    var sut: TokenManager<AuthorizationType, BaseAPIToken, RefreshTokenRouter>!
+    var sut: TokenManager<AuthorizationType, BaseAPIToken, RefreshTokenRouter, DateProviderMock, MockURLRequestProvider<BaseAPIToken>, APITokenRepositoryMock<BaseAPIToken>>!
     var tokenRepository: APITokenRepositoryMock<BaseAPIToken>!
     var hostnameProvider: HostnameProvider { urlRequestProvider }
     var urlRequestProvider: MockURLRequestProvider<BaseAPIToken>!
@@ -38,7 +38,7 @@ open class TokenManagerTestCase<AuthorizationType>: XCTestCase {
             apiService: APIService(networkingService: networkingService, urlRequestProvider: urlRequestProvider),
             dateProvider: dateProvider,
             apiTokenRepository: tokenRepository,
-            hostnameProvider: hostnameProvider
+            hostnameProvider: urlRequestProvider
         )
     }
     

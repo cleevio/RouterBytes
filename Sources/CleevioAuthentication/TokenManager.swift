@@ -55,13 +55,20 @@ public protocol TokenManagerType<APIToken>: AnyObject {
 
 /// A token manager that handles the retrieval and refreshing of API tokens.
 @available(macOS 12.0, *)
-public final actor TokenManager<AuthorizationType, APIToken: CodableAPITokentType, RefreshTokenAPIRouterType: RefreshTokenAPIRouter>: TokenManagerType where APIToken == RefreshTokenAPIRouterType.APIToken {
+public final actor TokenManager<
+    AuthorizationType,
+    APIToken: CodableAPITokentType,
+    RefreshTokenAPIRouterType: RefreshTokenAPIRouter,
+    DateProvider: DateProviderType,
+    HostnameProviderType: HostnameProvider,
+    TokenRepository: APITokenRepositoryType<APIToken>
+>: TokenManagerType where APIToken == RefreshTokenAPIRouterType.APIToken {
     private var refreshingTask: Task<APIToken, Error>?
     private let apiService: APIService<APIToken>
     @usableFromInline
-    let hostnameProvider: HostnameProvider
-    private let dateProvider: any DateProviderType
-    public let apiTokenRepository: any APITokenRepositoryType<APIToken>
+    let hostnameProvider: HostnameProviderType
+    private let dateProvider: DateProvider
+    public let apiTokenRepository: TokenRepository
 
     /// Initializes a new instance of `TokenManager`.
     ///
@@ -70,9 +77,9 @@ public final actor TokenManager<AuthorizationType, APIToken: CodableAPITokentTyp
     ///   - dateProvider: The `DateProviderType` to use for getting the current date.
     ///   - apiTokenRepository: The `APITokenRepositoryType` to use for storing and retrieving API tokens.
     public init(apiService: APIService<APIToken>,
-                dateProvider: any DateProviderType,
-                apiTokenRepository: any APITokenRepositoryType<APIToken>,
-                hostnameProvider: any HostnameProvider) {
+                dateProvider: DateProvider = CleevioAuthentication.DateProvider(),
+                apiTokenRepository: TokenRepository,
+                hostnameProvider: HostnameProviderType) {
         self.apiService = apiService
         self.dateProvider = dateProvider
         self.apiTokenRepository = apiTokenRepository

@@ -27,6 +27,9 @@ public protocol DateProviderType: Sendable {
  */
 public struct DateProvider: DateProviderType {
     @inlinable
+    public init() { }
+
+    @inlinable
     public func currentDate() -> Date {
         Date()
     }
