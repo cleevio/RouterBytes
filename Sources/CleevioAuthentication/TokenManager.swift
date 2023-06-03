@@ -22,6 +22,8 @@ public enum TokenManagerError: Error {
 public protocol TokenManagerType<APIToken>: AnyObject {
     associatedtype APIToken: CodableAPITokentType
 
+    var isUserLoggedIn: Bool { get }
+
     /// Retrieves an access token, optionally forcing a refresh.
     ///
     /// - Parameter forceRefresh: Whether or not to force a refresh of the access token.
@@ -37,6 +39,11 @@ public protocol TokenManagerType<APIToken>: AnyObject {
     ///
     /// - Throws: `TokenManagerError.notLoggedIn` if the user is not logged in, or an error thrown by the API service.
     func getRefreshToken() async throws -> APIToken.RefreshToken
+
+    func setAPIToken(_ apiToken: APIToken) async throws
+
+
+    func checkLoggedIn() async throws
 
     /// Logs out the user by clearing the stored API token.
     ///
@@ -70,6 +77,14 @@ public final actor TokenManager<AuthorizationType, APIToken: CodableAPITokentTyp
         self.dateProvider = dateProvider
         self.apiTokenRepository = apiTokenRepository
         self.hostnameProvider = hostnameProvider
+    }
+
+    nonisolated public var isUserLoggedIn: Bool {
+        apiTokenRepository.apiToken.value != nil
+    }
+
+    public func checkLoggedIn() throws {
+        guard isUserLoggedIn else { throw TokenManagerError.notLoggedIn }
     }
 
     /// The currently stored API token.
@@ -113,6 +128,11 @@ public final actor TokenManager<AuthorizationType, APIToken: CodableAPITokentTyp
         try apiToken.refreshToken
     }
 
+    @inlinable
+    public func setAPIToken(_ apiToken: APIToken) async throws {
+        apiTokenRepository.apiToken.store(apiToken)
+    }
+    
     @inlinable
     public func logout() async {
         apiTokenRepository.apiToken.store(nil)
