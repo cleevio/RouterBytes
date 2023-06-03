@@ -64,7 +64,7 @@ public final actor TokenManager<
     TokenRepository: APITokenRepositoryType<APIToken>
 >: TokenManagerType where APIToken == RefreshTokenAPIRouterType.APIToken {
     private var refreshingTask: Task<APIToken, Error>?
-    private let apiService: APIService<APIToken>
+    private let apiService: APIService<AuthorizationType>
     @usableFromInline
     let hostnameProvider: HostnameProviderType
     private let dateProvider: DateProvider
@@ -76,7 +76,7 @@ public final actor TokenManager<
     ///   - apiService: The `APIService` to use for API requests.
     ///   - dateProvider: The `DateProviderType` to use for getting the current date.
     ///   - apiTokenRepository: The `APITokenRepositoryType` to use for storing and retrieving API tokens.
-    public init(apiService: APIService<APIToken>,
+    public init(apiService: APIService<AuthorizationType>,
                 dateProvider: DateProvider = CleevioAuthentication.DateProvider(),
                 apiTokenRepository: TokenRepository,
                 hostnameProvider: HostnameProviderType) {
