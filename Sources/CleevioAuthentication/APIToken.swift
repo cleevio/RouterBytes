@@ -86,9 +86,3 @@ public struct BaseAPIToken: APITokenType, Equatable {
         expiration < currentDate.advanced(by: maximumTimeUntilExpiration)
     }
 }
-
-extension BaseAPIToken: TokenAPIRouterResponse {
-    public func asAPIToken() -> BaseAPIToken {
-        self
-    }    
-}

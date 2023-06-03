@@ -253,3 +253,9 @@ extension RefreshTokenRouter: RefreshTokenAPIRouter {
         self.init()
     }
 }
+
+extension BaseAPIToken: TokenAPIRouterResponse {
+    public func asAPIToken() -> CleevioAuthentication.BaseAPIToken {
+        self
+    }    
+}

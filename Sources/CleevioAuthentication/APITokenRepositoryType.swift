@@ -9,7 +9,7 @@ import Foundation
 import CleevioStorage
 
 /// A type alias for a Codable APITokenType.
-public typealias CodableAPITokentType = APITokenType & Decodable
+public typealias CodableAPITokentType = APITokenType & Codable
 
 /// A storage stream that holds an API token that conforms to the CodableAPITokentType protocol.
 /// Generic over APITokenType
