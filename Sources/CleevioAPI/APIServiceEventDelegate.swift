@@ -13,16 +13,23 @@ import Foundation
 /// Example usage:
 /// ```
 /// struct MyAPIServiceDelegate: APIServiceEventDelegate {
+///     var logoutAction: (() async -> Void)?
+///
 ///     func requestFired(request: URLRequest) {
 ///         log.info(request.cURL(pretty: true))
 ///     }
 ///
-///     func responseReceived(data: Data, response: URLResponse) {
-///         log.debug("Request: \(request)\nResponse: \(data.asJSONString(pretty: true) ?? "could not parse")")
+///     func responseReceived(from request: URLRequest, data: Data, response: URLResponse) {
+///         log.debug("Request: \(request)\nResponse: \(data.asString(pretty: true) ?? "could not parse")")
 ///     }
 ///
 ///     func responseDecoded<T>(_ value: T) {
-///         log.debug(decoded)
+///         log.debug(value)
+///     }
+///
+///     func requestFailedWithUnAuthorizedError(request: URLRequest) async {
+///         log.error("Request failed with unAuthorizedError: \(request)")
+///         await logoutAction?()
 ///     }
 /// }
 /// ```
@@ -37,7 +44,7 @@ public protocol APIServiceEventDelegate: Sendable {
     /// - Parameters:
     ///   - data: The data returned in the response.
     ///   - response: The URLResponse object for the response.
-    func responseReceived(data: Data, response: URLResponse)
+    func responseReceived(from request: URLRequest, data: Data, response: URLResponse)
 
     /// Notifies the delegate that a response has been decoded.
     ///
@@ -57,7 +64,7 @@ public extension APIServiceEventDelegate {
 
     /// Default implementation of `responseReceived(data:response:)`.
     @inlinable
-    func responseReceived(data: Data, response: URLResponse) { }
+    func responseReceived(from request: URLRequest, data: Data, response: URLResponse) { }
 
     /// Default implementation of `responseDecoded(_:)`.
     @inlinable

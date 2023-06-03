@@ -182,7 +182,7 @@ open class APIService<AuthorizationType>: @unchecked Sendable {
         eventDelegate?.requestFired(request: request)
         
         let (data, response) = try await networkingService.data(for: request)
-        eventDelegate?.responseReceived(data: data, response: response)
+        eventDelegate?.responseReceived(from: request, data: data, response: response)
         
         try checkResponse(from: data, with: response)
         
