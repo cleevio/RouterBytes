@@ -71,7 +71,13 @@ open class TokenManagerTestCase<AuthorizationType: APITokenAuthorizationType>: X
 
         let expectation = XCTestExpectation(description: "TokenManager should try to refresh token")
 
-        onRefreshNetworkCall = { _ in
+        let refreshRouter = RefreshTokenRouter()
+        let expectedRefreshURLRequest = try refreshRouter
+            .asURLRequest(hostname: hostnameProvider.hostname(for: refreshRouter))
+            .withBearerToken(tokenRepository.apiToken.value!.refreshToken.description)
+        
+        onRefreshNetworkCall = { request in
+            XCTAssertEqual(expectedRefreshURLRequest, request)
             expectation.fulfill()
             return (refreshResponse, HTTPURLResponse())
         }

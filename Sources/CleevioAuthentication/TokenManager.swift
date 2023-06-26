@@ -177,7 +177,7 @@ public final actor TokenManager<
 
             let router = RefreshTokenAPIRouterType(previousToken: previousToken)
 
-            let urlRequest = try router.asURLRequest(hostname: hostnameProvider.hostname(for: router)).withBearerToken(previousToken.accessToken.description)
+            let urlRequest = try router.asURLRequest(hostname: hostnameProvider.hostname(for: router)).withBearerToken(previousToken.refreshToken.description)
 
             return try await apiService.getDecoded(from: try await apiService.getDataFromNetwork(for: urlRequest), decoder: router.jsonDecoder)
         }
