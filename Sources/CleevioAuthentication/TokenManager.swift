@@ -141,7 +141,7 @@ public final actor TokenManager<
     }
 
     @inlinable
-    public func setAPIToken(_ apiToken: APIToken) async throws {
+    public func setAPIToken(_ apiToken: APIToken) throws {
         apiTokenRepository.apiToken.store(apiToken)
     }
     
@@ -161,7 +161,7 @@ public final actor TokenManager<
 
             let apiToken = try await refreshingTask.value
 
-            apiTokenRepository.apiToken.store(apiToken)
+            try setAPIToken(apiToken)
 
             return apiToken.accessToken
         } catch {

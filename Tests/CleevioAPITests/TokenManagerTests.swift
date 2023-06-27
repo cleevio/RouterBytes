@@ -61,9 +61,9 @@ open class TokenManagerTestCase<AuthorizationType: APITokenAuthorizationType>: X
 
         let refreshResponse = """
         {
-            "refresh" : "\(refreshToken)",
-            "expiresInS" : 900,
-            "access" : "\(accessToken)"
+            "refreshParameter" : "\(refreshToken)",
+            "expiresInSParameter" : 900,
+            "accessParameter" : "\(accessToken)"
         }
         """.data(using: .utf8)!
 
@@ -242,7 +242,18 @@ extension BaseAPIToken: Codable {
 }
 
 struct RefreshTokenRouter: APIRouter {
-    typealias Response = BaseAPIToken
+    struct Response: TokenAPIRouterResponse {
+        let refreshParameter: String
+        let expiresInSParameter: TimeInterval
+        let accessParameter: String
+
+        func asAPIToken() -> CleevioAuthentication.BaseAPIToken {
+            BaseAPIToken(
+                accessToken: accessParameter,
+                refreshToken: refreshParameter,
+                expiration: dateProvider.currentDate().addingTimeInterval(expiresInSParameter))
+        }
+    }
 
     var defaultHeaders: CleevioAPI.Headers { [:] }
     var hostname: URL { URL(string: "https://cleevio.com")! }
@@ -258,10 +269,4 @@ extension RefreshTokenRouter: RefreshTokenAPIRouter {
     init(previousToken: BaseAPIToken) {
         self.init()
     }
-}
-
-extension BaseAPIToken: TokenAPIRouterResponse {
-    public func asAPIToken() -> CleevioAuthentication.BaseAPIToken {
-        self
-    }    
 }
