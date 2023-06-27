@@ -53,8 +53,8 @@ public protocol APIServiceEventDelegate: Sendable {
 
     /// Notifies the delegate that a request failed with an unauthorized error.
     ///
-    /// - Parameter request: The URLRequest instance that failed with an unauthorized error.
-    func requestFailedWithUnAuthorizedError(request: URLRequest) async
+    /// - Parameter router: The APIRouter instance that failed with an unauthorized error.
+    func requestFailedWithUnAuthorizedError(router: some APIRouter) async
 }
 
 public extension APIServiceEventDelegate {
@@ -70,7 +70,7 @@ public extension APIServiceEventDelegate {
     @inlinable
     func responseDecoded<T>(_ value: T) { }
 
-    /// Default implementation of `requestFailedWithUnAuthorizedError(request:)`.
+    /// Default implementation of `requestFailedWithUnAuthorizedError(router:)`.
     @inlinable
-    func requestFailedWithUnAuthorizedError(request: URLRequest) async { }
+    func requestFailedWithUnAuthorizedError(router: some APIRouter) async { }
 }

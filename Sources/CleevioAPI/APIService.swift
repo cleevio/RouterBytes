@@ -111,16 +111,16 @@ open class APIService<AuthorizationType, NetworkingService: NetworkingServiceTyp
         } catch let error as NSError where error.domain == NSURLErrorDomain && error.code == NSURLErrorTimedOut {
             return try await getDataFromNetwork(for: try await getURLRequest(from: router))
         } catch ResponseValidationError.unauthorized {
-            let request = try await getURLRequestOnUnAuthorizedError(from: router)
             do {
+                let request = try await getURLRequestOnUnAuthorizedError(from: router)
                 return try await getDataFromNetwork(for: request)
             } catch {
-                await eventDelegate?.requestFailedWithUnAuthorizedError(request: request)
+                await eventDelegate?.requestFailedWithUnAuthorizedError(router: router)
                 throw error
             }
         } catch let error as FailedWithUnAuthorizedError {
-           await eventDelegate?.requestFailedWithUnAuthorizedError(request: try await getURLRequest(from: router))
-           throw error
+            await eventDelegate?.requestFailedWithUnAuthorizedError(router: router)
+            throw error
        }
     }
     
@@ -135,7 +135,7 @@ open class APIService<AuthorizationType, NetworkingService: NetworkingServiceTyp
      - Note: `RouterType.AuthorizationType` must match the `AuthorizationType` of the `APIService` instance.
      */
     @inlinable
-    final func getURLRequest<RouterType: APIRouter>(from router: RouterType) async throws -> URLRequest where RouterType.AuthorizationType == AuthorizationType {
+    final public func getURLRequest<RouterType: APIRouter>(from router: RouterType) async throws -> URLRequest where RouterType.AuthorizationType == AuthorizationType {
         try await urlRequestProvider.getURLRequest(from: router)
     }
     
@@ -150,7 +150,7 @@ open class APIService<AuthorizationType, NetworkingService: NetworkingServiceTyp
      - Note: `RouterType.AuthorizationType` must match the `AuthorizationType` of the `APIService` instance.
      */
     @inlinable
-    final func getURLRequestOnUnAuthorizedError<RouterType: APIRouter>(from router: RouterType) async throws -> URLRequest where RouterType.AuthorizationType == AuthorizationType {
+    final public func getURLRequestOnUnAuthorizedError<RouterType: APIRouter>(from router: RouterType) async throws -> URLRequest where RouterType.AuthorizationType == AuthorizationType {
         try await urlRequestProvider.getURLRequestOnUnAuthorizedError(from: router)
     }
     
