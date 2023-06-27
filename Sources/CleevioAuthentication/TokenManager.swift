@@ -166,7 +166,7 @@ public final actor TokenManager<
             return apiToken.accessToken
         } catch {
             self.refreshingTask = nil
-            throw error
+            throw FailedWithUnAuthorizedError(reason: error)
         }
     }
 

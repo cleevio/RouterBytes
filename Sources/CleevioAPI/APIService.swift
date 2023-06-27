@@ -118,7 +118,10 @@ open class APIService<AuthorizationType, NetworkingService: NetworkingServiceTyp
                 await eventDelegate?.requestFailedWithUnAuthorizedError(request: request)
                 throw error
             }
-        }
+        } catch let error as FailedWithUnAuthorizedError {
+           await eventDelegate?.requestFailedWithUnAuthorizedError(request: try await getURLRequest(from: router))
+           throw error
+       }
     }
     
     /**
