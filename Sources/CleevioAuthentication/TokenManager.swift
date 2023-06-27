@@ -172,14 +172,16 @@ public final actor TokenManager<
 
     /// Creates a task to refresh token
     private func refreshTokenTask() -> Task<APIToken, Error> {
-        Task {
+        Task { [apiTokenRepository] in
             guard let previousToken = apiTokenRepository.apiToken.value else { throw TokenManagerError.notLoggedIn }
 
             let router = RefreshTokenAPIRouterType(previousToken: previousToken)
 
             let urlRequest = try router.asURLRequest(hostname: hostnameProvider.hostname(for: router)).withBearerToken(previousToken.refreshToken.description)
 
-            return try await apiService.getDecoded(from: try await apiService.getDataFromNetwork(for: urlRequest), decoder: router.jsonDecoder)
+            let decoded: RefreshTokenAPIRouterType.Response = try await apiService.getDecoded(from: try await apiService.getDataFromNetwork(for: urlRequest), decoder: router.jsonDecoder)
+
+            return decoded.asAPIToken()
         }
     }
 }

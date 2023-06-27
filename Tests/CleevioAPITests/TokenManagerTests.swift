@@ -59,15 +59,25 @@ open class TokenManagerTestCase<AuthorizationType: APITokenAuthorizationType>: X
 
         let refreshToken = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI4ZmZiYWJjOS1mMTc5LTQyMmEtYWQ1My0yYWQ3YmQzOTk0YTEiLCJleHAiOjE2NzU3ODU0MjAsImlzcyI6ImNvbS5kcm9ucHJvLm1haW5hcGkiLCJ0eXBlIjoiUkVGUkVTSCJ9.u87LWGKaCecebc8qS2m37KJG8kT0bVBjBIo1RuuRGMkIpg3Dss4Y_VgNz-k5r2iB1JoDtLUwh1huR9m0vptzHw"
 
+        let expiration: Int = 900
+        
         let refreshResponse = """
         {
             "refreshParameter" : "\(refreshToken)",
-            "expiresInSParameter" : 900,
+            "expiresInSParameter" : \(expiration),
             "accessParameter" : "\(accessToken)"
         }
         """.data(using: .utf8)!
 
-        let tokenResponse = try! JSONDecoder().decode(BaseAPIToken.self, from: refreshResponse)
+        let apiTokenInData = """
+        {
+            "refresh" : "\(refreshToken)",
+            "expiresInS" : \(expiration),
+            "access" : "\(accessToken)"
+        }
+        """.data(using: .utf8)!
+
+        let tokenResponse = try! JSONDecoder().decode(BaseAPIToken.self, from: apiTokenInData)
 
         let expectation = XCTestExpectation(description: "TokenManager should try to refresh token")
 
@@ -264,8 +274,6 @@ struct RefreshTokenRouter: APIRouter {
 }
 
 extension RefreshTokenRouter: RefreshTokenAPIRouter {
-    typealias APIToken = BaseAPIToken
-
     init(previousToken: BaseAPIToken) {
         self.init()
     }
