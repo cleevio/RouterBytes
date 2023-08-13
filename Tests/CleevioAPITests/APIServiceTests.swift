@@ -1,5 +1,5 @@
 //
-//  APIServiceTests.swift
+//  APIRouterServiceTests.swift
 //  
 //
 //  Created by Lukáš Valenta on 30.04.2023.
@@ -9,9 +9,9 @@ import XCTest
 import CleevioAPI
 
 @available(iOS 15.0, *)
-final class APIServiceTests: XCTestCase {
+final class APIRouterServiceTests: XCTestCase {
     var networkingService: NetworkingServiceMock!
-    var apiService: APIService<AuthorizationType, NetworkingServiceMock, MockURLRequestProvider<AuthorizationType>>!
+    var apiService: APIRouterService<AuthorizationType, NetworkingServiceMock, MockURLRequestProvider<AuthorizationType>>!
     var delegate: MockAPIServiceEventDelegate!
     var mockURLRequestProvider: MockURLRequestProvider<AuthorizationType>!
     
@@ -21,7 +21,7 @@ final class APIServiceTests: XCTestCase {
         networkingService = NetworkingServiceMock()
         delegate = MockAPIServiceEventDelegate()
         mockURLRequestProvider = MockURLRequestProvider(hostname: URL(string: "https://cleevio.com")!)
-        apiService = APIService(networkingService: networkingService, urlRequestProvider: mockURLRequestProvider, eventDelegate: delegate)
+        apiService = APIRouterService(networkingService: networkingService, urlRequestProvider: mockURLRequestProvider, eventDelegate: delegate)
     }
     
     override func tearDown() {

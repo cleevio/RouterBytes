@@ -13,7 +13,19 @@ fileprivate var dateProvider = DateProviderMock(date: Date())
 
 @available(iOS 15.0, *)
 open class TokenManagerTestCase<AuthorizationType: APITokenAuthorizationType>: XCTestCase {
-    var sut: TokenManager<AuthorizationType, BaseAPIToken, RefreshTokenRouter, DateProviderMock, NetworkingServiceMock, MockURLRequestProvider<AuthorizationType>, MockURLRequestProvider<AuthorizationType>, APITokenRepositoryMock<BaseAPIToken>>!
+    var sut: TokenManager<
+        AuthorizationType,
+        BaseAPIToken,
+        DateProviderMock,
+        MockURLRequestProvider<AuthorizationType>,
+        APITokenRepositoryMock<BaseAPIToken>,
+        APIRouterRefreshTokenProvider<
+            BaseAPIToken,
+            RefreshTokenRouter,
+                APIRouterService<AuthorizationType, NetworkingServiceMock, MockURLRequestProvider<AuthorizationType>>,
+            MockURLRequestProvider<AuthorizationType>
+        >
+    >!
     var tokenRepository: APITokenRepositoryMock<BaseAPIToken>!
     var hostnameProvider: HostnameProvider { urlRequestProvider }
     var urlRequestProvider: MockURLRequestProvider<AuthorizationType>!
@@ -35,15 +47,15 @@ open class TokenManagerTestCase<AuthorizationType: APITokenAuthorizationType>: X
         self.urlRequestProvider = MockURLRequestProvider(hostname: URL(string: "https://cleevio.com")!)
         
         sut = TokenManager(
-            apiService: APIService(networkingService: networkingService, urlRequestProvider: urlRequestProvider),
-            dateProvider: dateProvider,
-            apiTokenRepository: tokenRepository,
-            hostnameProvider: urlRequestProvider
+            storage: tokenRepository,
+            refreshProvider: .init(apiService: APIRouterService(networkingService: networkingService, urlRequestProvider: urlRequestProvider), hostnameProvider: urlRequestProvider),
+            hostnameProvider: urlRequestProvider,
+            dateProvider: dateProvider
         )
     }
     
     func setLoggedIn(expiration: Date = Date.distantFuture) {
-        tokenRepository.apiToken.store(.init(
+        tokenRepository.apiTokenStream.store(.init(
             accessToken: UUID().uuidString,
             refreshToken: UUID().uuidString,
             expiration: expiration
@@ -84,7 +96,7 @@ open class TokenManagerTestCase<AuthorizationType: APITokenAuthorizationType>: X
         let refreshRouter = RefreshTokenRouter()
         let expectedRefreshURLRequest = try refreshRouter
             .asURLRequest(hostname: hostnameProvider.hostname(for: refreshRouter))
-            .withBearerToken(tokenRepository.apiToken.value!.refreshToken.description)
+            .withBearerToken(tokenRepository.apiToken!.refreshToken.description)
         
         onRefreshNetworkCall = { request in
             XCTAssertEqual(expectedRefreshURLRequest, request)
@@ -100,7 +112,7 @@ open class TokenManagerTestCase<AuthorizationType: APITokenAuthorizationType>: X
 
             XCTAssertEqual(accessToken, tokenResponse.accessToken)
             XCTAssertEqual(refreshToken, tokenResponse.refreshToken)
-            XCTAssertEqual(tokenRepository.apiToken.value, tokenResponse)
+            XCTAssertEqual(tokenRepository.apiToken, tokenResponse)
         } catch {
             print(error)
             XCTFail()
@@ -134,14 +146,14 @@ final class TokenManagerTests: TokenManagerTestCase<AuthorizationType> {
         setLoggedIn()
         let accessToken = try await sut.getRefreshToken()
 
-        XCTAssertEqual(accessToken, tokenRepository.apiToken.value?.refreshToken)
+        XCTAssertEqual(accessToken, tokenRepository.apiToken?.refreshToken)
     }
 
     func testAccessTokenLoggedIn() async throws {
         setLoggedIn()
         let accessToken = try await sut.getAccessToken(forceRefresh: false)
 
-        XCTAssertEqual(accessToken, tokenRepository.apiToken.value?.accessToken)
+        XCTAssertEqual(accessToken, tokenRepository.apiToken?.accessToken)
     }
 
     func testApiTokenIsUpdatedAfterRefresh() async throws {
@@ -177,7 +189,7 @@ final class TokenManagerURLRequestProviderTests: TokenManagerTestCase<CleevioAPI
         try await refreshingHelper(signedInTokenExpiration: Date.distantFuture, forceRefresh: false) {
             let router = Self.mockRouter(type: .bearer(.accessToken))
             let request = try await self.sut.getURLRequestOnUnAuthorizedError(from: router)
-            XCTAssertEqual(request, try router.asURLRequest(hostname: self.hostnameProvider.hostname(for: router)).withBearerToken(self.tokenRepository.apiToken.value!.accessToken))
+            XCTAssertEqual(request, try router.asURLRequest(hostname: self.hostnameProvider.hostname(for: router)).withBearerToken(self.tokenRepository.apiToken!.accessToken))
         }
     }
 
@@ -185,7 +197,7 @@ final class TokenManagerURLRequestProviderTests: TokenManagerTestCase<CleevioAPI
         self.setLoggedIn(expiration: .distantFuture)
         let router = Self.mockRouter(type: .bearer(.accessToken))
         let request = try await self.sut.getURLRequest(from: router)
-        XCTAssertEqual(request, try router.asURLRequest(hostname: self.hostnameProvider.hostname(for: router)).withBearerToken(tokenRepository.apiToken.value!.accessToken))
+        XCTAssertEqual(request, try router.asURLRequest(hostname: self.hostnameProvider.hostname(for: router)).withBearerToken(tokenRepository.apiToken!.accessToken))
     }
 
     func testURLRequestProvidingWithAccessTokenNotLoggedIn() async throws {
@@ -204,7 +216,7 @@ final class TokenManagerURLRequestProviderTests: TokenManagerTestCase<CleevioAPI
         self.setLoggedIn(expiration: .distantFuture)
         let router = Self.mockRouter(type: .bearer(.refreshToken))
         let request = try await self.sut.getURLRequest(from: router)
-        XCTAssertEqual(request, try router.asURLRequest(hostname: self.hostnameProvider.hostname(for: router)).withBearerToken(tokenRepository.apiToken.value!.refreshToken))
+        XCTAssertEqual(request, try router.asURLRequest(hostname: self.hostnameProvider.hostname(for: router)).withBearerToken(tokenRepository.apiToken!.refreshToken))
     }
 
     func testURLRequestProvidingWithRefreshTokenNotLoggedIn() async throws {

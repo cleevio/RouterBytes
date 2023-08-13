@@ -40,9 +40,6 @@ public protocol TokenManagerType<APIToken>: AnyObject {
     /// - Throws: `TokenManagerError.notLoggedIn` if the user is not logged in, or an error thrown by the API service.
     func getRefreshToken() async throws -> APIToken.RefreshToken
 
-    func setAPIToken(_ apiToken: APIToken) async throws
-
-
     func checkLoggedIn() async throws
 
     /// Logs out the user by clearing the stored API token.
@@ -58,19 +55,18 @@ public protocol TokenManagerType<APIToken>: AnyObject {
 public final actor TokenManager<
     AuthorizationType: APITokenAuthorizationType,
     APIToken: CodableAPITokentType,
-    RefreshTokenAPIRouterType: RefreshTokenAPIRouter,
     DateProvider: DateProviderType,
-    NetworkingService: NetworkingServiceType,
-    URLRequestProvider,
     HostnameProviderType: HostnameProvider,
-    TokenRepository: APITokenRepositoryType<APIToken>
->: TokenManagerType where APIToken == RefreshTokenAPIRouterType.APIToken, URLRequestProvider: CleevioAPI.URLRequestProvider<AuthorizationType> {
+    TokenStorage: APITokenStorageType<APIToken>,
+    RefreshProvider: CleevioAuthentication.RefreshTokenProvider<APIToken>
+>: TokenManagerType {
+    
     private var refreshingTask: Task<APIToken, Error>?
-    private let apiService: APIService<AuthorizationType, NetworkingService, URLRequestProvider>
     @usableFromInline
     let hostnameProvider: HostnameProviderType
     private let dateProvider: DateProvider
-    public let apiTokenRepository: TokenRepository
+    private let refreshProvider: RefreshProvider
+    public let storage: TokenStorage
 
     /// Initializes a new instance of `TokenManager`.
     ///
@@ -78,21 +74,20 @@ public final actor TokenManager<
     ///   - apiService: The `APIService` to use for API requests.
     ///   - dateProvider: The `DateProviderType` to use for getting the current date.
     ///   - apiTokenRepository: The `APITokenRepositoryType` to use for storing and retrieving API tokens.
-    public init(apiService: APIService<AuthorizationType, NetworkingService, URLRequestProvider>,
-                dateProvider: DateProvider = CleevioAuthentication.DateProvider(),
-                apiTokenRepository: TokenRepository,
+    public init(storage: TokenStorage,
+                refreshProvider: RefreshProvider,
                 hostnameProvider: HostnameProviderType,
+                dateProvider: DateProvider = CleevioAuthentication.DateProvider(),
                 authorizationType: AuthorizationType.Type = AuthorizationType.self,
-                apiToken: APIToken.Type = APIToken.self,
-                refreshTokenAPIRouterType: RefreshTokenAPIRouterType.Type = RefreshTokenAPIRouterType.self) {
-        self.apiService = apiService
+                apiToken: APIToken.Type = APIToken.self) {
+        self.refreshProvider = refreshProvider
         self.dateProvider = dateProvider
-        self.apiTokenRepository = apiTokenRepository
+        self.storage = storage
         self.hostnameProvider = hostnameProvider
     }
 
     nonisolated public var isUserLoggedIn: Bool {
-        apiTokenRepository.apiToken.value != nil
+        storage.isUserLoggedIn
     }
 
     public func checkLoggedIn() throws {
@@ -103,7 +98,7 @@ public final actor TokenManager<
     @usableFromInline
     nonisolated var apiToken: APIToken {
         get throws {
-            guard let apiToken = apiTokenRepository.apiToken.value else { throw TokenManagerError.notLoggedIn }
+            guard let apiToken = storage.apiToken else { throw TokenManagerError.notLoggedIn }
 
             return apiToken
         }
@@ -139,29 +134,26 @@ public final actor TokenManager<
     public func getRefreshToken() throws -> APIToken.RefreshToken {
         try apiToken.refreshToken
     }
-
-    @inlinable
-    public func setAPIToken(_ apiToken: APIToken) throws {
-        apiTokenRepository.apiToken.store(apiToken)
-    }
     
-    @inlinable
     public func logout() async {
-        apiTokenRepository.apiToken.store(nil)
+        await storage.removeAPITokenFromStorage()
     }
 
     /// Asynchronously gets a refreshed access token.
      /// - Returns: A refreshed access token.
     private func getRefreshedAccessToken() async throws -> APIToken.AccessToken {
         do {
-            let refreshingTask = refreshTokenTask()
+            let currentToken = try apiToken
+            let refreshingTask = Task { [refreshProvider] in
+                try await refreshProvider.getRefreshedAPIToken(currentToken: currentToken)
+            }
             self.refreshingTask = refreshingTask
 
             defer { self.refreshingTask = nil }
 
             let apiToken = try await refreshingTask.value
 
-            try setAPIToken(apiToken)
+            try await storage.storeAPIToken(apiToken)
 
             return apiToken.accessToken
         } catch {
@@ -169,20 +161,12 @@ public final actor TokenManager<
             throw FailedWithUnAuthorizedError(reason: error)
         }
     }
+}
 
-    /// Creates a task to refresh token
-    private func refreshTokenTask() -> Task<APIToken, Error> {
-        Task { [apiTokenRepository] in
-            guard let previousToken = apiTokenRepository.apiToken.value else { throw TokenManagerError.notLoggedIn }
-
-            let router = RefreshTokenAPIRouterType(previousToken: previousToken)
-
-            let urlRequest = try router.asURLRequest(hostname: hostnameProvider.hostname(for: router)).withBearerToken(previousToken.refreshToken.description)
-
-            let decoded: RefreshTokenAPIRouterType.Response = try await apiService.getDecoded(from: try await apiService.getDataFromNetwork(for: urlRequest), decoder: router.jsonDecoder)
-
-            return decoded.asAPIToken()
-        }
+extension TokenManager {
+    @inlinable
+    public func setAPIToken(_ apiToken: APIToken) async throws {
+        try await storage.storeAPIToken(apiToken)
     }
 }
 

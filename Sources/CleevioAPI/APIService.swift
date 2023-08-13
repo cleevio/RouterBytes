@@ -8,22 +8,22 @@
 import Foundation
 
 /**
- `APIService` is a class responsible for making network requests and decoding responses. It uses an implementation of the `NetworkingServiceType` protocol to perform the network requests and an implementation of the `URLRequestProvider` protocol to create URL requests for the network requests.
+ `APIRouterService` is a class responsible for making network requests and decoding responses. It uses an implementation of the `NetworkingServiceType` protocol to perform the network requests and an implementation of the `URLRequestProvider` protocol to create URL requests for the network requests.
  
- To use `APIService`, subclass it and override its methods as needed. The most commonly used method is `getResponse`, which fetches data from the network. You pass an implementation of the `APIRouter` to `getResponse`, and it returns the decoded fetched data.
+ To use `APIRouterService`, subclass it and override its methods as needed. The most commonly used method is `getResponse`, which fetches data from the network. You pass an implementation of the `APIRouter` to `getResponse`, and it returns the decoded fetched data.
  
- `APIService` supports retry functionality in the `getData` method. If the network request fails due to an invalid response code or a timeout error, it will retry the request once. This behavior helps improve the reliability of data retrieval.
+ `APIRouterService` supports retry functionality in the `getData` method. If the network request fails due to an invalid response code or a timeout error, it will retry the request once. This behavior helps improve the reliability of data retrieval.
  
- The class also provides an optional `APIServiceEventDelegate` that can be used to receive events from the `APIService` object, such as progress updates and response decoding notifications. If the network request fails with an unauthorized error, it will attempt to fetch the data again using the `getSignedURLRequestOnUnAuthorizedError(from:)` method, and notify the event delegate if the second attempt also fails.
+ The class also provides an optional `APIServiceEventDelegate` that can be used to receive events from the `APIRouterService` object, such as progress updates and response decoding notifications. If the network request fails with an unauthorized error, it will attempt to fetch the data again using the `getSignedURLRequestOnUnAuthorizedError(from:)` method, and notify the event delegate if the second attempt also fails.
  
  The generic `AuthorizationType` represents the type of authorization used by the network requests. It is specified when creating an instance of `APIService`.
  
- By default, `APIService` uses `URLSession.shared` as the networking service.
+ By default, `APIRouterService` uses `URLSession.shared` as the networking service.
  
  - Example usage:
  ```
  let networkingService = YourNetworkingService()
- let apiService = APIService<YourAuthorizationType>(networkingService: networkingService)
+ let apiService = APIRouterService<YourAuthorizationType>(networkingService: networkingService)
  
  let router = YourAPIRouter()
  do {
@@ -35,13 +35,7 @@ import Foundation
  ```
  */
 @available(macOS 12.0, *)
-open class APIService<AuthorizationType, NetworkingService: NetworkingServiceType, URLRequestProvider>: @unchecked Sendable where URLRequestProvider: CleevioAPI.URLRequestProvider<AuthorizationType> {
-    /// The networking service used to perform network requests.
-    public final let networkingService: NetworkingService
-    
-    /// An optional delegate that can be used to receive events from the `APIService` object.
-    public final let eventDelegate: APIServiceEventDelegate?
-    
+open class APIRouterService<AuthorizationType, NetworkingService: NetworkingServiceType, URLRequestProvider>: APIService<NetworkingService> where URLRequestProvider: CleevioAPI.URLRequestProvider<AuthorizationType> {
     public final let urlRequestProvider: URLRequestProvider
     
     /**
@@ -55,9 +49,11 @@ open class APIService<AuthorizationType, NetworkingService: NetworkingServiceTyp
     public init(networkingService: NetworkingService = URLSession.shared,
                 urlRequestProvider: URLRequestProvider,
                 eventDelegate: APIServiceEventDelegate? = nil) {
-        self.networkingService = networkingService
-        self.eventDelegate = eventDelegate
         self.urlRequestProvider = urlRequestProvider
+        super.init(
+            networkingService: networkingService,
+            eventDelegate: eventDelegate
+        )
     }
 
     /**
@@ -153,7 +149,9 @@ open class APIService<AuthorizationType, NetworkingService: NetworkingServiceTyp
     final public func getURLRequestOnUnAuthorizedError<RouterType: APIRouter>(from router: RouterType) async throws -> URLRequest where RouterType.AuthorizationType == AuthorizationType {
         try await urlRequestProvider.getURLRequestOnUnAuthorizedError(from: router)
     }
-    
+}
+
+public protocol APIServiceType {
     /**
      Decodes the data using the specified `JSONDecoder`.
      
@@ -165,14 +163,8 @@ open class APIService<AuthorizationType, NetworkingService: NetworkingServiceTyp
      - Returns: A decoded object of the specified type.
      - Throws: An error if the decoding fails.
      */
-    final public func getDecoded<T: Decodable>(from data: Data, decoder: JSONDecoder) async throws -> T {
-        let decoded: T = try decoder.decode(T.self, from: data)
-        
-        eventDelegate?.responseDecoded(decoded)
-        
-        return decoded
-    }
-    
+    func getDecoded<T: Decodable>(from data: Data, decoder: JSONDecoder) async throws -> T
+
     /**
      Fetches data from the network using a given `URLRequest`.
      
@@ -182,6 +174,31 @@ open class APIService<AuthorizationType, NetworkingService: NetworkingServiceTyp
      - Returns: The data fetched from the network.
      - Throws: An error if the network request fails.
      */
+    func getDataFromNetwork(for request: URLRequest) async throws -> Data
+}
+
+open class APIService<NetworkingService: NetworkingServiceType>: APIServiceType {
+    /// The networking service used to perform network requests.
+    public final let networkingService: NetworkingService
+
+    /// An optional delegate that can be used to receive events from the `APIService` object.
+    public let eventDelegate: APIServiceEventDelegate?
+
+    @inlinable
+    public init(networkingService: NetworkingService = URLSession.shared,
+                eventDelegate: APIServiceEventDelegate? = nil) {
+        self.networkingService = networkingService
+        self.eventDelegate = eventDelegate
+    }
+
+    final public func getDecoded<T: Decodable>(from data: Data, decoder: JSONDecoder) async throws -> T {
+        let decoded: T = try decoder.decode(T.self, from: data)
+        
+        eventDelegate?.responseDecoded(decoded)
+        
+        return decoded
+    }
+
     final public func getDataFromNetwork(for request: URLRequest) async throws -> Data {
         eventDelegate?.requestFired(request: request)
         
