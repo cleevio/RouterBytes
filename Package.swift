@@ -13,7 +13,7 @@ let swiftSettings: [SwiftSetting] = [
 ]
 
 let package = Package(
-    name: "CleevioAPILibrary",
+    name: "CleevioAPI",
     platforms: [
         .iOS(.v13)
     ],

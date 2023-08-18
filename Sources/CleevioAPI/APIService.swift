@@ -35,7 +35,7 @@ import Foundation
  ```
  */
 @available(macOS 12.0, *)
-open class APIRouterService<AuthorizationType, NetworkingService: NetworkingServiceType, URLRequestProvider>: APIService<NetworkingService> where URLRequestProvider: CleevioAPI.URLRequestProvider<AuthorizationType> {
+open class APIRouterService<AuthorizationType, NetworkingService: NetworkingServiceType, URLRequestProvider>: APIService<NetworkingService>, APIRouterServiceType where URLRequestProvider: CleevioAPI.URLRequestProvider<AuthorizationType> {
     public final let urlRequestProvider: URLRequestProvider
     
     /**
@@ -175,6 +175,20 @@ public protocol APIServiceType {
      - Throws: An error if the network request fails.
      */
     func getDataFromNetwork(for request: URLRequest) async throws -> Data
+}
+
+public protocol APIRouterServiceType<AuthorizationType>: CleevioAPI.APIServiceType {
+    associatedtype AuthorizationType
+
+    func getResponse<RouterType: APIRouter>(from router: RouterType) async throws -> RouterType.Response where RouterType.AuthorizationType == AuthorizationType, RouterType.Response: Decodable
+
+    func getResponse<RouterType: APIRouter>(from router: RouterType) async throws where RouterType.AuthorizationType == AuthorizationType, RouterType.Response == Void
+
+    func getData<RouterType: APIRouter>(for router: RouterType) async throws -> Data where RouterType.AuthorizationType == AuthorizationType
+
+    func getURLRequest<RouterType: APIRouter>(from router: RouterType) async throws -> URLRequest where RouterType.AuthorizationType == AuthorizationType
+
+    func getURLRequestOnUnAuthorizedError<RouterType: APIRouter>(from router: RouterType) async throws -> URLRequest where RouterType.AuthorizationType == AuthorizationType
 }
 
 open class APIService<NetworkingService: NetworkingServiceType>: APIServiceType {
