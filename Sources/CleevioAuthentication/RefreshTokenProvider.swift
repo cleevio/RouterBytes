@@ -8,6 +8,7 @@
 import Foundation
 import CleevioAPI
 
+/// A protocol that defines functions that handle the refreshing logic for RefreshableTokenProvider
 public protocol RefreshTokenProvider<APIToken> {
     /// The type of API token to be refreshed.
     associatedtype APIToken: RefreshableAPITokenType

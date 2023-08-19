@@ -14,11 +14,20 @@ public protocol APITokenProvider<APIToken> {
     /// The type of API token to be stored in the storage.
     associatedtype APIToken: CodableAPITokenType
 
+    /// Asynchronously returns APIToken
+    ///
+    /// - Throws: `NotLoggedInError` if the user is not logged in
     var apiToken: APIToken { get async throws }
 
     var isUserLoggedIn: Bool { get }
 
+    /// A function that should remove APIToken from storage -> logout the user.
     func removeAPITokenFromStorage() async
+
+    /// APITokenProvider should attempt to refresh APIToken if it makes sense given that particular provider
+    /// Default behavior is it does not do anything
+    ///
+    /// - Throws: error if refresh failed
     func attemptAPITokenRefresh() async throws
 }
 

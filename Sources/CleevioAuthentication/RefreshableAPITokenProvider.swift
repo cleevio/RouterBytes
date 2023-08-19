@@ -8,6 +8,7 @@
 import Foundation
 import CleevioAPI
 
+/// A SettableAPITokenProvider that is based on some settable token storage and refresh provider that handles the refresh
 public actor RefreshableTokenProvider<
     APIToken: CodableAPITokenType,
     TokenStorage: SettableAPITokenProvider<APIToken>,
@@ -56,6 +57,14 @@ public actor RefreshableTokenProvider<
         _ = try await getAPIToken(forceRefresh: true)
     }
 
+    /// Retrieves an access token, optionally forcing a refresh.
+    ///
+    /// - Parameter forceRefresh: Whether or not to force a refresh of the access token.
+    ///
+    /// - Returns: The access token.
+    ///
+    /// - Throws: `NotLoggedInError` if the user is not logged in
+    /// - Throws: `FailedWithUnAuthorizedError` if the refresh failed.
     private func getAPIToken(forceRefresh: Bool) async throws -> APIToken {
         if let refreshingTask {
             return try await refreshingTask.value
