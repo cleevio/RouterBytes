@@ -15,14 +15,14 @@ The `RefreshTokenAPIRouter` protocol extends the `APIRouter` protocol and requir
 */
 @available(macOS 10.15, *)
 public protocol RefreshTokenAPIRouter: APIRouter where Response: TokenAPIRouterResponse {
-    associatedtype APIToken: APITokenType = BaseAPIToken where APIToken == Response.APIToken
+    associatedtype APIToken: RefreshableAPITokenType = BaseAPIToken where APIToken == Response.APIToken
 
     init(previousToken: APIToken)
 }
 
 @available(macOS 10.15, *)
 public protocol TokenAPIRouterResponse: Codable {
-    associatedtype APIToken: APITokenType = BaseAPIToken
+    associatedtype APIToken: RefreshableAPITokenType = BaseAPIToken
 
     func asAPIToken() -> APIToken
 }

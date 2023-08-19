@@ -15,15 +15,17 @@ fileprivate var dateProvider = DateProviderMock(date: Date())
 open class TokenManagerTestCase<AuthorizationType: APITokenAuthorizationType>: XCTestCase {
     var sut: TokenManager<
         AuthorizationType,
-        BaseAPIToken,
-        DateProviderMock,
         MockURLRequestProvider<AuthorizationType>,
-        APITokenRepositoryMock<BaseAPIToken>,
-        APIRouterRefreshTokenProvider<
+        RefreshableTokenProvider<
             BaseAPIToken,
-            RefreshTokenRouter,
-                APIRouterService<AuthorizationType, NetworkingServiceMock, MockURLRequestProvider<AuthorizationType>>,
-            MockURLRequestProvider<AuthorizationType>
+            APITokenRepositoryMock<BaseAPIToken>,
+            APIRouterRefreshTokenProvider<
+                BaseAPIToken,
+                RefreshTokenRouter,
+                    APIRouterService<AuthorizationType, NetworkingServiceMock, MockURLRequestProvider<AuthorizationType>>,
+                MockURLRequestProvider<AuthorizationType>,
+                DateProviderMock
+            >
         >
     >!
     var tokenRepository: APITokenRepositoryMock<BaseAPIToken>!
@@ -47,10 +49,12 @@ open class TokenManagerTestCase<AuthorizationType: APITokenAuthorizationType>: X
         self.urlRequestProvider = MockURLRequestProvider(hostname: URL(string: "https://cleevio.com")!)
         
         sut = TokenManager(
-            storage: tokenRepository,
-            refreshProvider: .init(apiService: APIRouterService(networkingService: networkingService, urlRequestProvider: urlRequestProvider), hostnameProvider: urlRequestProvider),
             hostnameProvider: urlRequestProvider,
-            dateProvider: dateProvider
+            tokenProvider: .init(storage: tokenRepository, refreshProvider: .init(
+                apiService: APIRouterService(networkingService: networkingService, urlRequestProvider: urlRequestProvider),
+                hostnameProvider: urlRequestProvider,
+                dateProvider: dateProvider
+            ))
         )
     }
     
@@ -64,7 +68,9 @@ open class TokenManagerTestCase<AuthorizationType: APITokenAuthorizationType>: X
 
     func refreshingHelper(signedInTokenExpiration: Date,
                           forceRefresh: Bool,
-                          executeBeforeCheck: (() async throws -> Void)? = nil) async throws {
+                          executeBeforeCheck: (() async throws -> Void)? = nil,
+                          file: StaticString = #file,
+                          line: UInt = #line) async throws {
         setLoggedIn(expiration: signedInTokenExpiration)
         
         let accessToken: String = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI4ZmZiYWJjOS1mMTc5LTQyMmEtYWQ1My0yYWQ3YmQzOTk0YTEiLCJleHAiOjE2NzU3ODI3MjAsImlzcyI6ImNvbS5kcm9ucHJvLm1haW5hcGkiLCJ0eXBlIjoiQUNDRVNTIn0.7OjvRrOZgc8EuCjtOzdUPBZTKhhxm3m5p5oTxryjfPbUdjDAGq5X8HoyN2YFA_UQNRxSb6LLsujTxDEnsnvifQ"
@@ -96,7 +102,7 @@ open class TokenManagerTestCase<AuthorizationType: APITokenAuthorizationType>: X
         let refreshRouter = RefreshTokenRouter()
         let expectedRefreshURLRequest = try refreshRouter
             .asURLRequest(hostname: hostnameProvider.hostname(for: refreshRouter))
-            .withBearerToken(tokenRepository.apiToken!.refreshToken.description)
+            .withBearerToken(try tokenRepository.apiToken.refreshToken.description)
         
         onRefreshNetworkCall = { request in
             XCTAssertEqual(expectedRefreshURLRequest, request)
@@ -107,15 +113,17 @@ open class TokenManagerTestCase<AuthorizationType: APITokenAuthorizationType>: X
         try await executeBeforeCheck?()
 
         do {
-            let accessToken = try await sut.getAccessToken(forceRefresh: forceRefresh)
-            let refreshToken = try await sut.getRefreshToken()
+            if forceRefresh {
+                try await sut.tokenProvider.attemptAPITokenRefresh()
+            }
+            let token = try await sut.tokenProvider.apiToken
 
-            XCTAssertEqual(accessToken, tokenResponse.accessToken)
-            XCTAssertEqual(refreshToken, tokenResponse.refreshToken)
-            XCTAssertEqual(tokenRepository.apiToken, tokenResponse)
+            XCTAssertEqual(token.accessToken, tokenResponse.accessToken, file: file, line: line)
+            XCTAssertEqual(token.refreshToken, tokenResponse.refreshToken, file: file, line: line)
+            XCTAssertEqual(try tokenRepository.apiToken, tokenResponse, file: file, line: line)
         } catch {
             print(error)
-            XCTFail()
+            XCTFail(file: file, line: line)
         }
 
         wait(for: [expectation], timeout: 0.1)
@@ -126,34 +134,36 @@ open class TokenManagerTestCase<AuthorizationType: APITokenAuthorizationType>: X
 final class TokenManagerTests: TokenManagerTestCase<AuthorizationType> {
     func testRefreshTokenNotLoggedIn() async {
         do {
-            _ = try await sut.getRefreshToken()
+            _ = try await sut.tokenProvider.apiToken.refreshToken
             XCTFail("GetRefreshToken should throw an error")
+        } catch is NotLoggedInError {
         } catch {
-            XCTAssertEqual(error as? TokenManagerError, TokenManagerError.notLoggedIn)
+            XCTFail("Incorrect error type, expected: NotLoggedInError, got: \(error.self)")
         }
     }
 
     func testAccessTokenNotLoggedIn() async {
         do {
-            _ = try await sut.getAccessToken(forceRefresh: false)
+            _ = try await sut.tokenProvider.apiToken.accessToken
             XCTFail("GetRefreshToken should throw an error")
+        } catch is NotLoggedInError {
         } catch {
-            XCTAssertEqual(error as? TokenManagerError, TokenManagerError.notLoggedIn)
+            XCTFail("Incorrect error type, expected: NotLoggedInError, got: \(error.self)")
         }
     }
 
     func testRefreshTokenLoggedIn() async throws {
         setLoggedIn()
-        let accessToken = try await sut.getRefreshToken()
+        let accessToken = try await sut.tokenProvider.apiToken.accessToken
 
-        XCTAssertEqual(accessToken, tokenRepository.apiToken?.refreshToken)
+        XCTAssertEqual(accessToken, try tokenRepository.apiToken.accessToken)
     }
 
     func testAccessTokenLoggedIn() async throws {
         setLoggedIn()
-        let accessToken = try await sut.getAccessToken(forceRefresh: false)
+        let accessToken = try await sut.tokenProvider.apiToken.refreshToken
 
-        XCTAssertEqual(accessToken, tokenRepository.apiToken?.accessToken)
+        XCTAssertEqual(accessToken, try tokenRepository.apiToken.refreshToken)
     }
 
     func testApiTokenIsUpdatedAfterRefresh() async throws {
@@ -189,7 +199,7 @@ final class TokenManagerURLRequestProviderTests: TokenManagerTestCase<CleevioAPI
         try await refreshingHelper(signedInTokenExpiration: Date.distantFuture, forceRefresh: false) {
             let router = Self.mockRouter(type: .bearer(.accessToken))
             let request = try await self.sut.getURLRequestOnUnAuthorizedError(from: router)
-            XCTAssertEqual(request, try router.asURLRequest(hostname: self.hostnameProvider.hostname(for: router)).withBearerToken(self.tokenRepository.apiToken!.accessToken))
+            XCTAssertEqual(request, try router.asURLRequest(hostname: self.hostnameProvider.hostname(for: router)).withBearerToken(try self.tokenRepository.apiToken.accessToken))
         }
     }
 
@@ -197,7 +207,7 @@ final class TokenManagerURLRequestProviderTests: TokenManagerTestCase<CleevioAPI
         self.setLoggedIn(expiration: .distantFuture)
         let router = Self.mockRouter(type: .bearer(.accessToken))
         let request = try await self.sut.getURLRequest(from: router)
-        XCTAssertEqual(request, try router.asURLRequest(hostname: self.hostnameProvider.hostname(for: router)).withBearerToken(tokenRepository.apiToken!.accessToken))
+        XCTAssertEqual(request, try router.asURLRequest(hostname: self.hostnameProvider.hostname(for: router)).withBearerToken(try tokenRepository.apiToken.accessToken))
     }
 
     func testURLRequestProvidingWithAccessTokenNotLoggedIn() async throws {
@@ -205,7 +215,7 @@ final class TokenManagerURLRequestProviderTests: TokenManagerTestCase<CleevioAPI
         do {
             _ = try await self.sut.getURLRequest(from: router)
             XCTFail("Error not thrown")
-        } catch TokenManagerError.notLoggedIn {
+        } catch is NotLoggedInError {
             
         } catch {
             XCTFail("Wrong password thrown: \(error)")
@@ -216,7 +226,7 @@ final class TokenManagerURLRequestProviderTests: TokenManagerTestCase<CleevioAPI
         self.setLoggedIn(expiration: .distantFuture)
         let router = Self.mockRouter(type: .bearer(.refreshToken))
         let request = try await self.sut.getURLRequest(from: router)
-        XCTAssertEqual(request, try router.asURLRequest(hostname: self.hostnameProvider.hostname(for: router)).withBearerToken(tokenRepository.apiToken!.refreshToken))
+        XCTAssertEqual(request, try router.asURLRequest(hostname: self.hostnameProvider.hostname(for: router)).withBearerToken(try tokenRepository.apiToken.refreshToken))
     }
 
     func testURLRequestProvidingWithRefreshTokenNotLoggedIn() async throws {
@@ -224,7 +234,7 @@ final class TokenManagerURLRequestProviderTests: TokenManagerTestCase<CleevioAPI
         do {
             _ = try await self.sut.getURLRequest(from: router)
             XCTFail("Error not thrown")
-        } catch TokenManagerError.notLoggedIn {
+        } catch is NotLoggedInError {
             
         } catch {
             XCTFail("Wrong password thrown: \(error)")

@@ -10,21 +10,27 @@ import CleevioAPI
 
 @available(macOS 10.15.0, *)
 public protocol APITokenAuthorizationType {
-    func authorizedRequest(urlRequest: URLRequest, with tokenManager: some TokenManagerType) async throws -> URLRequest
+    func authorizedRequest(urlRequest: URLRequest, with provider: some APITokenProvider) async throws -> URLRequest
 }
 
 @available(macOS 10.15.0, *)
 extension CleevioAPI.AuthorizationType: APITokenAuthorizationType {
-    public func authorizedRequest(urlRequest: URLRequest, with tokenManager: some TokenManagerType) async throws -> URLRequest {
+    public func authorizedRequest(urlRequest: URLRequest, with provider: some APITokenProvider) async throws -> URLRequest {
         switch self {
         case let .bearer(tokenType):
+            let apiToken = try await provider.apiToken
             let token: String
 
             switch tokenType {
             case .accessToken:
-                token = try await tokenManager.getAccessToken(forceRefresh: false).description
+                token = apiToken.accessToken.description
             case .refreshToken:
-                token = try await tokenManager.getRefreshToken().description
+                if let apiToken = apiToken as? (any RefreshableAPITokenType) {
+                    token = apiToken.refreshToken.description
+                } else {
+                    assertionFailure("APIToken is not refreshable") // TODO: Find out a typesafe way if possible
+                    token = ""
+                }
             }
             
             return urlRequest.withBearerToken(token)

@@ -9,27 +9,31 @@ import Foundation
 import CleevioStorage
 
 /// A type alias for a Codable APITokenType.
-public typealias CodableAPITokentType = APITokenType & Codable
+public typealias CodableAPITokenType = APITokenType & Codable
+public typealias CodableRefreshableAPITokenType = CodableAPITokenType & RefreshableAPITokenType
 
 /// A storage stream that holds an API token that conforms to the CodableAPITokentType protocol.
 /// Generic over APITokenType
 @available(macOS 12.0, *)
-public typealias APITokenStorageStream<APIToken: CodableAPITokentType> = StorageStream<APIToken>
+public typealias APITokenStorageStream<APIToken: CodableAPITokenType> = StorageStream<APIToken>
 
 /// A protocol that defines the behavior of an API token repository.
 /// Generic over APITokenType
 @available(macOS 12.0, *)
-public protocol APITokenRepositoryType<APIToken>: APITokenStorageType {
+public protocol APITokenRepositoryType<APIToken>: SettableAPITokenProvider {
     /// The storage stream that holds the API token.
     var apiTokenStream: APITokenStorageStream<APIToken> { get }
 }
 
 extension APITokenRepositoryType {
-    public var apiToken: APIToken? { apiTokenStream.value }
+    public var apiToken: APIToken { get throws {
+        guard let value = apiTokenStream.value else { throw NotLoggedInError() }
+        return value
+    } }
     public var isUserLoggedIn: Bool { apiTokenStream.value != nil }
 
     @inlinable
-    public func storeAPIToken(_ apiToken: APIToken) {
+    public func setAPIToken(_ apiToken: APIToken) {
         self.apiTokenStream.store(apiToken)
         
     }
@@ -43,7 +47,7 @@ extension APITokenRepositoryType {
 /// A mock implementation of an API token repository.
 /// Generic over APITokenType to be stored in the repository.
 @available(macOS 12.0, *)
-public struct APITokenRepositoryMock<APIToken: CodableAPITokentType>: APITokenRepositoryType  {
+public struct APITokenRepositoryMock<APIToken: CodableAPITokenType>: APITokenRepositoryType  {    
     /// The storage stream that holds the API token.
     public let apiTokenStream: APITokenStorageStream<APIToken>
 

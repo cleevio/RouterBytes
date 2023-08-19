@@ -12,13 +12,19 @@ public protocol APITokenType: Sendable {
     
     /// The type used to represent the access token.
     associatedtype AccessToken: CustomStringConvertible & Sendable = String
-    
-    /// The type used to represent the refresh token.
-    associatedtype RefreshToken: CustomStringConvertible & Sendable = String
 
     /// The current access token.
     var accessToken: AccessToken { get }
-    
+}
+
+extension String: APITokenType {
+    public var accessToken: String { self }
+}
+
+public protocol RefreshableAPITokenType: APITokenType {
+    /// The type used to represent the refresh token.
+    associatedtype RefreshToken: CustomStringConvertible & Sendable = String
+
     /// The refresh token.
     var refreshToken: RefreshToken { get }
 
@@ -32,7 +38,7 @@ public protocol APITokenType: Sendable {
     func needsToBeRefreshed(currentDate: Date, maximumTimeUntilExpiration: TimeInterval) -> Bool
 }
 
-public extension APITokenType {
+public extension RefreshableAPITokenType {
     
     /// Returns a Boolean value indicating whether the token needs to be refreshed, using a default time interval of 300 seconds.
     ///
@@ -51,7 +57,7 @@ public extension APITokenType {
 ///
 /// - Note: This struct does not conform to Codable protocol to allow for more flexibility in projects that require this struct to be codable.
 @available(macOS 10.15, *)
-public struct BaseAPIToken: APITokenType, Equatable {
+public struct BaseAPIToken: RefreshableAPITokenType, Equatable {
     /// The access token.
     public let accessToken: String
     
