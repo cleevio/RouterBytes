@@ -1,8 +1,8 @@
 require 'CleevioFastlane'
 import(CleevioFastlane.path)
+ENV["XCODE_VERSION"] = "15"
 
 CONFIG = FastlaneConfig.new(
-    unit_tests_build_configuration: "Debug",
     deployments: {
         :devel => [
         	SPMFramework.new()

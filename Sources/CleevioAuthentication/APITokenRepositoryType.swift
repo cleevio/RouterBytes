@@ -25,6 +25,7 @@ public protocol APITokenRepositoryType<APIToken>: SettableAPITokenProvider {
     var apiTokenStream: APITokenStorageStream<APIToken> { get }
 }
 
+@available(macOS 12.0, *)
 extension APITokenRepositoryType {
     public var apiToken: APIToken { get throws {
         guard let value = apiTokenStream.value else { throw NotLoggedInError() }

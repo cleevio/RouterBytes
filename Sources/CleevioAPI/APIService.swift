@@ -177,6 +177,7 @@ public protocol APIServiceType {
     func getDataFromNetwork(for request: URLRequest) async throws -> Data
 }
 
+@available(macOS 12.0, *)
 public protocol APIRouterServiceType<AuthorizationType>: CleevioAPI.APIServiceType {
     associatedtype AuthorizationType
 
@@ -191,6 +192,7 @@ public protocol APIRouterServiceType<AuthorizationType>: CleevioAPI.APIServiceTy
     func getURLRequestOnUnAuthorizedError<RouterType: APIRouter>(from router: RouterType) async throws -> URLRequest where RouterType.AuthorizationType == AuthorizationType
 }
 
+@available(macOS 12.0, *)
 open class APIService<NetworkingService: NetworkingServiceType>: APIServiceType {
     /// The networking service used to perform network requests.
     public final let networkingService: NetworkingService

@@ -42,6 +42,19 @@ final class APIRouterTests: XCTestCase {
         XCTAssertTrue(url.absoluteString.contains("https://example.com/api/test"))
         XCTAssertTrue(url.absoluteString.contains("?param1=value1&param2=value2") || url.absoluteString.contains("?param2=value2&param1=value1"))
     }
+
+    func testAsURLHostnameWithPath() throws {
+        let router = BaseAPIRouter<String, Data>(
+            hostname: URL(string: "https://example.com/path")!,
+            path: "/api/test",
+            authType: .none,
+            queryItems: ["param1": "value1", "param2": "value2"]
+        )
+        
+        let url = try router.asURL()
+        XCTAssertTrue(url.absoluteString.contains("https://example.com/path/api/test"))
+        XCTAssertTrue(url.absoluteString.contains("?param1=value1&param2=value2") || url.absoluteString.contains("?param2=value2&param1=value1"))
+    }
     
     func testAsURLRequest() throws {
         let router = BaseAPIRouter<String, Data>(

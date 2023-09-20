@@ -93,7 +93,7 @@ public extension APIRouter {
             throw APIRouterError.invalidHostname
         }
 
-        components.path = path
+        components.path.append(path)
 
         if !queryItems.isEmpty {
             components.queryItems = queryItems.map(URLQueryItem.init)

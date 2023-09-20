@@ -9,6 +9,7 @@ import Foundation
 import CleevioAPI
 
 /// A SettableAPITokenProvider that is based on some settable token storage and refresh provider that handles the refresh
+@available(macOS 10.15, *)
 public actor RefreshableTokenProvider<
     APIToken: CodableAPITokenType,
     TokenStorage: SettableAPITokenProvider<APIToken>,

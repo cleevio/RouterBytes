@@ -11,8 +11,10 @@ import CleevioStorage
 
 public struct NotLoggedInError: Error, Hashable { public init() { } }
 
+@available(macOS 10.15.0, *)
 public typealias TokenManager = TokenProviderWrappedURLRequestProvider
 
+@available(macOS 10.15.0, *)
 public struct TokenProviderWrappedURLRequestProvider<
     AuthorizationType: APITokenAuthorizationType,
     HostnameProvider: CleevioAPI.HostnameProvider,

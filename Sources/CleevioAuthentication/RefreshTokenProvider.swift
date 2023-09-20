@@ -21,6 +21,7 @@ public protocol RefreshTokenProvider<APIToken> {
 }
 
 /// A simple implementation of RefreshTokenProvider that uses its provided APIService and through provided RefreshTokenAPIRouter returns refreshed APIToken
+@available(macOS 10.15, *)
 public struct APIRouterRefreshTokenProvider<
     APIToken: RefreshableAPITokenType,
     RefreshTokenAPIRouter: CleevioAuthentication.RefreshTokenAPIRouter,
