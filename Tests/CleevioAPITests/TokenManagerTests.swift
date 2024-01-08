@@ -291,7 +291,7 @@ struct RefreshTokenRouter: APIRouter {
     var hostname: URL { URL(string: "https://cleevio.com")! }
     var jsonDecoder: JSONDecoder = .init()
     var jsonEncoder: JSONEncoder = .init()
-    var path: String { "" }
+    var path: Path { "" }
     var authType: CleevioAPI.AuthorizationType { .bearer(.refreshToken) }
 }
 

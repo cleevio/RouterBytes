@@ -12,7 +12,7 @@ public struct BaseAPIRouter<RequestBody: Sendable & Encodable, Response: Decodab
     public let hostname: URL
     public let jsonDecoder: JSONDecoder
     public let jsonEncoder: JSONEncoder
-    public let path: String
+    public let path: Path
     public let authType: AuthorizationType
     public let additionalHeaders: Headers
     public let queryItems: [String: String]
@@ -24,7 +24,7 @@ public struct BaseAPIRouter<RequestBody: Sendable & Encodable, Response: Decodab
                 hostname: URL,
                 jsonDecoder: JSONDecoder = JSONDecoder(),
                 jsonEncoder: JSONEncoder = JSONEncoder(),
-                path: String,
+                path: Path,
                 authType: AuthorizationType,
                 additionalHeaders: Headers = [:],
                 queryItems: [String: String] = [:],
@@ -51,7 +51,7 @@ public extension BaseAPIRouter where RequestBody == EmptyCodable {
                 hostname: URL,
                 jsonDecoder: JSONDecoder = JSONDecoder(),
                 jsonEncoder: JSONEncoder = JSONEncoder(),
-                path: String,
+                path: Path,
                 authType: AuthorizationType,
                 additionalHeaders: Headers = [:],
                 queryItems: [String: String] = [:],

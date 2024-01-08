@@ -51,7 +51,7 @@ public protocol APIRouter<RequestBody>: Sendable {
     var jsonEncoder: JSONEncoder { get }
     
     /// The path for the API endpoint.
-    var path: String { get }
+    var path: Path { get }
     /// Additional headers to be added to the request headers for the API endpoint.
     /// Empty dictionary if not specified
     var additionalHeaders: Headers { get }
@@ -93,7 +93,9 @@ public extension APIRouter {
             throw APIRouterError.invalidHostname
         }
 
-        components.path.append(path)
+        let path: Path = components.path + path
+
+        components.path = "/\(path)"
 
         if !queryItems.isEmpty {
             components.queryItems = queryItems.map(URLQueryItem.init)
