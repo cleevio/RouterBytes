@@ -138,6 +138,13 @@ public extension APIRouter where RequestBody == Void {
     }
 }
 
+public extension APIRouter where RequestBody == Data {
+    @inlinable
+    func encode(_ value: RequestBody) throws -> Data? {
+        value
+    }
+}
+
 public protocol HasHostname {
     /// The base URL for the API endpoint.
 
