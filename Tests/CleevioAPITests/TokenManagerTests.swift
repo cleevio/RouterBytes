@@ -242,7 +242,7 @@ final class TokenManagerURLRequestProviderTests: TokenManagerTestCase<CleevioAPI
     }
 
     static private func mockRouter(type: AuthorizationType) -> BaseAPIRouter<String, String> {
-        BaseAPIRouter(hostname: URL(string: "https://cleevio.com")!, path: "/blog", authType: type)
+        BaseAPIRouter(hostname: URL(string: "https://cleevio.com")!, path: "/blog", authType: type, body: "")
     }
 }
 
@@ -293,6 +293,14 @@ struct RefreshTokenRouter: APIRouter {
     var jsonEncoder: JSONEncoder = .init()
     var path: Path { "" }
     var authType: CleevioAPI.AuthorizationType { .bearer(.refreshToken) }
+
+    func decode<T>(_ type: T.Type, from data: Data) throws -> T where T : Decodable {
+        try jsonDecoder.decode(type, from: data)
+    }
+
+    func encode(_ value: some Encodable) throws -> Data {
+        try jsonEncoder.encode(value)
+    }
 }
 
 extension RefreshTokenRouter: RefreshTokenAPIRouter {

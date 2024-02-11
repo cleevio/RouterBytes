@@ -49,7 +49,7 @@ public struct APIRouterRefreshTokenProvider<
 
         let urlRequest = try router.asURLRequest(hostname: hostnameProvider.hostname(for: router)).withBearerToken(currentToken.refreshToken.description)
 
-        let decoded: RefreshTokenAPIRouter.Response = try await apiService.getDecoded(from: try await apiService.getDataFromNetwork(for: urlRequest), decoder: router.jsonDecoder)
+        let decoded: RefreshTokenAPIRouter.Response = try await apiService.getDecoded(from: try await apiService.getDataFromNetwork(for: urlRequest), decode: router.decode)
 
         return decoded.asAPIToken()
     }

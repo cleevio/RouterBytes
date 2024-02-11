@@ -70,7 +70,7 @@ open class APIRouterService<AuthorizationType, NetworkingService: NetworkingServ
     @inlinable
     final public func getResponse<RouterType: APIRouter>(from router: RouterType) async throws -> RouterType.Response where RouterType.AuthorizationType == AuthorizationType, RouterType.Response: Decodable {
         let data = try await getData(for: router)
-        return try await getDecoded(from: data, decoder: router.jsonDecoder)
+        return try await getDecoded(from: data, decode: router.decode)
     }
     
     /**
@@ -163,7 +163,7 @@ public protocol APIServiceType {
      - Returns: A decoded object of the specified type.
      - Throws: An error if the decoding fails.
      */
-    func getDecoded<T: Decodable>(from data: Data, decoder: JSONDecoder) async throws -> T
+    func getDecoded<T: Decodable>(from data: Data, decode: (T.Type, Data) throws -> T) async throws -> T
 
     /**
      Fetches data from the network using a given `URLRequest`.
@@ -207,8 +207,8 @@ open class APIService<NetworkingService: NetworkingServiceType>: APIServiceType 
         self.eventDelegate = eventDelegate
     }
 
-    final public func getDecoded<T: Decodable>(from data: Data, decoder: JSONDecoder) async throws -> T {
-        let decoded: T = try decoder.decode(T.self, from: data)
+    final public func getDecoded<T: Decodable>(from data: Data, decode: (T.Type, Data) throws -> T) async throws -> T {
+        let decoded: T = try decode(T.self, data)
         
         eventDelegate?.responseDecoded(decoded)
         

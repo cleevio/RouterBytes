@@ -14,7 +14,8 @@ final class APIRouterTests: XCTestCase {
            let router = BaseAPIRouter<EmptyCodable, Data>(
                hostname: URL(string: "https://example.com")!,
                path: "/test",
-               authType: .none
+               authType: .none,
+               body: EmptyCodable()
            )
         
         let headers: [String: String] = [:]
@@ -26,8 +27,8 @@ final class APIRouterTests: XCTestCase {
         let urlRequest = try router.asURLRequest()
         XCTAssertEqual(urlRequest.url, expectedURL)
         XCTAssertEqual(urlRequest.httpMethod, HTTPMethod.get.rawValue)
-        XCTAssertEqual(urlRequest.httpBody, nil)
-        XCTAssertEqual(urlRequest.allHTTPHeaderFields, [:])
+        XCTAssertEqual(urlRequest.httpBody, try JSONEncoder().encode(EmptyCodable()))
+        XCTAssertEqual(urlRequest.allHTTPHeaderFields, ["Content-Type": "application/json"])
     }
     
     func testAsURL() throws {
@@ -35,7 +36,8 @@ final class APIRouterTests: XCTestCase {
             hostname: URL(string: "https://example.com")!,
             path: "/api/test",
             authType: .none,
-            queryItems: ["param1": "value1", "param2": "value2"]
+            queryItems: ["param1": "value1", "param2": "value2"],
+            body: ""
         )
         
         let url = try router.asURL()
@@ -48,7 +50,8 @@ final class APIRouterTests: XCTestCase {
             hostname: URL(string: "https://example.com/path")!,
             path: "/api/test",
             authType: .none,
-            queryItems: ["param1": "value1", "param2": "value2"]
+            queryItems: ["param1": "value1", "param2": "value2"],
+            body: ""
         )
         
         let url = try router.asURL()
@@ -69,7 +72,7 @@ final class APIRouterTests: XCTestCase {
         let urlRequest = try router.asURLRequest()
         
         XCTAssertEqual(urlRequest.httpMethod, "POST")
-        XCTAssertEqual(urlRequest.allHTTPHeaderFields, [:])
+        XCTAssertEqual(urlRequest.allHTTPHeaderFields, ["Content-Type": "application/json"])
         
         let url = try XCTUnwrap(urlRequest.url)
         
@@ -86,7 +89,8 @@ final class APIRouterTests: XCTestCase {
             path: "/users",
             authType: .none,
             additionalHeaders: ["header3": "header3"],
-            queryItems: ["page": "1", "perPage": "20"]
+            queryItems: ["page": "1", "perPage": "20"],
+            body: EmptyCodable()
         )
 
         let url = try router.asURL()
@@ -102,7 +106,8 @@ final class APIRouterTests: XCTestCase {
             path: "/users",
             authType: .none,
             additionalHeaders: ["header3": "value3"],
-            queryItems: ["page": "1", "perPage": "20"]
+            queryItems: ["page": "1", "perPage": "20"],
+            body: EmptyCodable()
         )
 
         let urlRequest = try router.asURLRequest()
@@ -111,18 +116,19 @@ final class APIRouterTests: XCTestCase {
         
         XCTAssertTrue(url.absoluteString.contains("https://example.com/users"))
         XCTAssertTrue(url.absoluteString.contains("?page=1&perPage=20") || url.absoluteString.contains("?perPage=20&page=1"))
-        XCTAssertEqual(urlRequest.allHTTPHeaderFields, ["header1":"value1", "header2":"value2", "header3": "value3"])
-        XCTAssertEqual(urlRequest.httpBody, nil)
+        XCTAssertEqual(urlRequest.allHTTPHeaderFields, ["Content-Type": "application/json", "header1":"value1", "header2":"value2", "header3": "value3"])
+        XCTAssertEqual(urlRequest.httpBody, try JSONEncoder().encode(EmptyCodable()))
     }
 
     func testAsURLRequstWithOverridingDefaultHeaderWithAdditionalHeaders() throws {
         let router = BaseAPIRouter<EmptyCodable, Data>(
-            defaultHeaders: ["header1":"value1", "header2":"value2"],
+            defaultHeaders: ["Content-Type": "test", "header1":"value1", "header2":"value2"],
             hostname: URL(string: "https://example.com")!,
             path: "/users",
             authType: .none,
             additionalHeaders: ["header1": "value3"],
-            queryItems: ["page": "1", "perPage": "20"]
+            queryItems: ["page": "1", "perPage": "20"],
+            body: EmptyCodable()
         )
 
         let urlRequest = try router.asURLRequest()
@@ -131,8 +137,8 @@ final class APIRouterTests: XCTestCase {
         
         XCTAssertTrue(url.absoluteString.contains("https://example.com/users"))
         XCTAssertTrue(url.absoluteString.contains("?page=1&perPage=20") || url.absoluteString.contains("?perPage=20&page=1"))
-        XCTAssertEqual(urlRequest.allHTTPHeaderFields, ["header1":"value3", "header2":"value2"])
-        XCTAssertEqual(urlRequest.httpBody, nil)
+        XCTAssertEqual(urlRequest.allHTTPHeaderFields, ["Content-Type": "test", "header1":"value3", "header2":"value2"])
+        XCTAssertEqual(urlRequest.httpBody, try JSONEncoder().encode(EmptyCodable()))
     }
 
     func testAsURLRequestWithPOSTMethod() throws {

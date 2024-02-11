@@ -255,7 +255,7 @@ final class APIRouterServiceTests: XCTestCase {
     }
 
     static private func mockRouter<Response: Decodable>() -> BaseAPIRouter<String, Response> {
-        BaseAPIRouter(hostname: URL(string: "https://cleevio.com")!, path: "/blog", authType: .none)
+        BaseAPIRouter(hostname: URL(string: "https://cleevio.com")!, path: "/blog", authType: .none, body: "")
     }
 }
 

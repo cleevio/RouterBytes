@@ -45,10 +45,6 @@ public protocol APIRouter<RequestBody>: Sendable {
     // Properties to be specified within the project APIRouter protocol
     /// The default headers for the API endpoint.
     var defaultHeaders: Headers { get }
-    /// The JSON decoder to use for decoding responses.
-    var jsonDecoder: JSONDecoder { get }
-    /// The JSON encoder to use for encoding requests.
-    var jsonEncoder: JSONEncoder { get }
     
     /// The path for the API endpoint.
     var path: Path { get }
@@ -63,15 +59,15 @@ public protocol APIRouter<RequestBody>: Sendable {
     var method: HTTPMethod { get }
     /// The body of the API request.
     /// Nil by default
-    var body: RequestBody? { get }
+    var body: RequestBody { get throws }
     /// The authorization type for the API endpoint.
     var authType: AuthorizationType { get }
     /// The cache policy for the API request. Default: .get
     var cachePolicy: URLRequest.CachePolicy { get }
 
-    /// Converts the `RequestBody` to a `Data` object.
-    /// Returns `nil` if there is no request body.
-    func encodedBody() throws -> Data?
+    func encode(_ value: RequestBody) throws -> Data?
+    func decode<T: Decodable>(_ type: T.Type, from data: Data) throws  -> T
+    func contentType(from body: RequestBody) -> ContentType
 }
 
 public extension APIRouter {
@@ -111,37 +107,33 @@ public extension APIRouter {
     /// Converts the APIRequest to a `URLRequest`.
     /// - Parameter hostname: The base URL for the API endpoint.
     func asURLRequest(hostname: URL) throws -> URLRequest {
+
         var urlRequest = try URLRequest(url: asURL(hostname: hostname))
 
         urlRequest.httpMethod = method.rawValue
 
+        let body = try self.body
+        urlRequest.setValue(contentType(from: body).rawValue, forHTTPHeaderField: "Content-Type")
         for header in headers {
             urlRequest.setValue(header.value, forHTTPHeaderField: header.key)
         }
 
-        urlRequest.httpBody = try encodedBody()
+        urlRequest.httpBody = try encode(body)
 
         return urlRequest
     }
-}
 
-public extension APIRouter where RequestBody: Encodable {
-    @inlinable
-    func encodedBody() throws -> Data? {
-        guard let body else { return nil }
-
-        return try jsonEncoder.encode(body)
+    func contentType(from body: RequestBody) -> ContentType {
+        .applicationJSON
     }
 }
 
 public extension APIRouter where RequestBody == Void {
     @inlinable
-    var body: RequestBody? {
-        nil
-    }
+    var body: RequestBody { () }
 
     @inlinable
-    func encodedBody() throws -> Data? {
+    func encode(_ value: RequestBody) throws -> Data? {
         nil
     }
 }
