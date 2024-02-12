@@ -28,6 +28,10 @@ let package = Package(
         .library(
             name: "APIMultipart",
             targets: ["APIMultipart"]
+        ),
+        .library(
+            name: "APIServiceMock",
+            targets: ["APIServiceMock"]
         )
     ],
     dependencies: [
@@ -47,6 +51,13 @@ let package = Package(
             dependencies: [
                 "CleevioAPI",
                 "CleevioStorage"
+            ],
+            swiftSettings: swiftSettings
+        ),
+        .target(
+            name: "APIServiceMock",
+            dependencies: [
+                "CleevioAPI",
             ],
             swiftSettings: swiftSettings
         ),
