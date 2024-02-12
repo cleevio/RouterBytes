@@ -27,7 +27,7 @@ final class APIRouterTests: XCTestCase {
         let urlRequest = try router.asURLRequest()
         XCTAssertEqual(urlRequest.url, expectedURL)
         XCTAssertEqual(urlRequest.httpMethod, HTTPMethod.get.rawValue)
-        XCTAssertEqual(urlRequest.httpBody, try JSONEncoder().encode(EmptyCodable()))
+        XCTAssertEqual(urlRequest.httpBody, try JSONEncoder().encode(.empty))
         XCTAssertEqual(urlRequest.allHTTPHeaderFields, ["Content-Type": "application/json"])
     }
     
@@ -138,7 +138,7 @@ final class APIRouterTests: XCTestCase {
         XCTAssertTrue(url.absoluteString.contains("https://example.com/users"))
         XCTAssertTrue(url.absoluteString.contains("?page=1&perPage=20") || url.absoluteString.contains("?perPage=20&page=1"))
         XCTAssertEqual(urlRequest.allHTTPHeaderFields, ["Content-Type": "test", "header1":"value3", "header2":"value2"])
-        XCTAssertEqual(urlRequest.httpBody, try JSONEncoder().encode(EmptyCodable()))
+        XCTAssertEqual(urlRequest.httpBody, try JSONEncoder().encode(.empty))
     }
 
     func testAsURLRequestWithPOSTMethod() throws {

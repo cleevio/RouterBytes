@@ -24,6 +24,10 @@ let package = Package(
         .library(
             name: "CleevioAuthentication",
             targets: ["CleevioAuthentication"]
+        ),
+        .library(
+            name: "APIMultipart",
+            targets: ["APIMultipart"]
         )
     ],
     dependencies: [
@@ -43,6 +47,13 @@ let package = Package(
             dependencies: [
                 "CleevioAPI",
                 "CleevioStorage"
+            ],
+            swiftSettings: swiftSettings
+        ),
+        .target(
+            name: "APIMultipart",
+            dependencies: [
+                "CleevioAPI"
             ],
             swiftSettings: swiftSettings
         ),

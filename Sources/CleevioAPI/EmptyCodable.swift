@@ -25,3 +25,11 @@ import Foundation
 public struct EmptyCodable: Codable, Sendable {
     public init() { }
 }
+
+public extension Encodable where Self == EmptyCodable {
+    static var empty: Self { .init() }
+}
+
+public extension Decodable where Self == EmptyCodable {
+    static var empty: Self { .init() }
+}

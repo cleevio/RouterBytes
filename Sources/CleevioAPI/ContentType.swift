@@ -16,6 +16,9 @@ public struct ContentType: RawRepresentable, Hashable, Codable, Sendable  {
     }
 
     public static let applicationJSON: ContentType = "application/json"
+    public static let applicationXML: ContentType = "application/xml"
+    public static let applicationXwwwFormURLencoded: ContentType = "application/x-www-form-urlencoded"
+    public static let textPlain: ContentType = "text/plain"
 }
 
 /// Enables initialization of a path using a string literal.
