@@ -10,7 +10,7 @@ import CleevioStorage
 import CleevioAPI
 
 /// A protocol that defines necessary interface an APIToken storage needs to implement to work with TokenManager
-public protocol APITokenProvider<APIToken> {
+public protocol APITokenProvider<APIToken>: Sendable {
     /// The type of API token to be stored in the storage.
     associatedtype APIToken: CodableAPITokenType
 

@@ -10,7 +10,7 @@ import Foundation
 /// A protocol that defines a type capable of providing a hostname for a given API router.
 ///
 /// Implement this protocol to create a custom hostname provider for your API client.
-public protocol HostnameProvider {
+public protocol HostnameProvider: Sendable {
     /// Returns the hostname for the given API router.
     ///
     /// - Parameter router: The API router to get the hostname for.

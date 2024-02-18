@@ -193,7 +193,7 @@ public protocol APIRouterServiceType<AuthorizationType>: CleevioAPI.APIServiceTy
 }
 
 @available(macOS 12.0, *)
-open class APIService<NetworkingService: NetworkingServiceType>: APIServiceType {
+open class APIService<NetworkingService: NetworkingServiceType>: @unchecked Sendable, APIServiceType {
     /// The networking service used to perform network requests.
     public final let networkingService: NetworkingService
 

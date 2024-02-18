@@ -83,7 +83,7 @@ extension BaseURLRequestProvider: CleevioAPI.HostnameProvider {
 }
 
 /// A URLRequest provider for mocking API requests during testing.
-public class MockURLRequestProvider<AuthorizationType>: URLRequestProvider {
+public class MockURLRequestProvider<AuthorizationType>: @unchecked Sendable, URLRequestProvider {
     /// Indicates if `getURLRequest(from:)` has been called.
     public private(set) var getURLRequestCalled: Bool = false
     /// Indicates if `getURLRequestOnUnAuthorizedError(from:)` has been called.

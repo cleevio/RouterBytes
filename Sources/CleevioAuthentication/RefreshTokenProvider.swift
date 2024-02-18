@@ -9,7 +9,7 @@ import Foundation
 import CleevioAPI
 
 /// A protocol that defines functions that handle the refreshing logic for RefreshableTokenProvider
-public protocol RefreshTokenProvider<APIToken> {
+public protocol RefreshTokenProvider<APIToken>: Sendable {
     /// The type of API token to be refreshed.
     associatedtype APIToken: RefreshableAPITokenType
 
@@ -25,7 +25,7 @@ public protocol RefreshTokenProvider<APIToken> {
 public struct APIRouterRefreshTokenProvider<
     APIToken: RefreshableAPITokenType,
     RefreshTokenAPIRouter: CleevioAuthentication.RefreshTokenAPIRouter,
-    APIService: APIServiceType,
+    APIService: APIServiceType & Sendable,
     HostnameProvider: CleevioAPI.HostnameProvider,
     DateProvider: DateProviderType
 >: RefreshTokenProvider where RefreshTokenAPIRouter.APIToken == APIToken {

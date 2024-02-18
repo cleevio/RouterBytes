@@ -15,8 +15,8 @@
         "repositoryURL": "git@gitlab.cleevio.cz:cleevio-dev-ios/CleevioStorage",
         "state": {
           "branch": null,
-          "revision": "c0612f50701648d30d51ac4efa2c5d538837d330",
-          "version": "0.2.1"
+          "revision": "d6ff7a5410c0ab5a7de8365cad7e40b6c422e386",
+          "version": "0.3.0-dev3"
         }
       },
       {

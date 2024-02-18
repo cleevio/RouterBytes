@@ -36,7 +36,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "git@gitlab.cleevio.cz:cleevio-dev-ios/CleevioCore", .upToNextMajor(from: .init(2, 0, 0))),
-        .package(url: "git@gitlab.cleevio.cz:cleevio-dev-ios/CleevioStorage", .upToNextMajor(from: .init(0, 1, 3)))
+        .package(url: "git@gitlab.cleevio.cz:cleevio-dev-ios/CleevioStorage", .upToNextMajor(from: "0.3.0-dev3"))
     ],
     targets: [
         .target(
