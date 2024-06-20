@@ -11,7 +11,7 @@ import Foundation
 ///
 /// Implement this protocol to create a custom URLRequest provider for your API client.
 /// The `AuthorizationType` associated type is used to define the type of authorization used by the API.
-public protocol URLRequestProvider<AuthorizationType> {
+public protocol URLRequestProvider<AuthorizationType>: Sendable {
     associatedtype AuthorizationType
 
     /// Returns a URLRequest for the given API router.
