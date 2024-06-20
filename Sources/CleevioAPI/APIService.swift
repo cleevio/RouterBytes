@@ -151,7 +151,7 @@ open class APIRouterService<AuthorizationType, NetworkingService: NetworkingServ
     }
 }
 
-public protocol APIServiceType {
+public protocol APIServiceType: Sendable {
     /**
      Decodes the data using the specified `JSONDecoder`.
      
