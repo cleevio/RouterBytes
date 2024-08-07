@@ -38,7 +38,8 @@ public typealias Headers = [String: String]
  - SeeAlso: `APIRouterError`, `HTTPMethod`, `Headers`
  */
 public protocol APIRouter<RequestBody>: Sendable {
-    associatedtype Response
+    associatedtype Response: Sendable
+    associatedtype HeaderResponse: Sendable = Void
     associatedtype AuthorizationType = CleevioAPI.AuthorizationType
     associatedtype RequestBody: Sendable = Void
 

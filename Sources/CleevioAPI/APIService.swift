@@ -36,6 +36,7 @@ import Foundation
  */
 @available(macOS 12.0, *)
 open class APIRouterService<AuthorizationType, NetworkingService: NetworkingServiceType, URLRequestProvider>: APIService<NetworkingService>, APIRouterServiceType, Sendable where URLRequestProvider: CleevioAPI.URLRequestProvider<AuthorizationType> {
+    
     public final let urlRequestProvider: URLRequestProvider
     
     /**
@@ -68,9 +69,27 @@ open class APIRouterService<AuthorizationType, NetworkingService: NetworkingServ
      - Throws: An error if the network request or decoding fails.
      */
     @inlinable
-    final public func getResponse<RouterType: APIRouter>(from router: RouterType) async throws -> RouterType.Response where RouterType.AuthorizationType == AuthorizationType, RouterType.Response: Decodable {
-        let data = try await getData(for: router)
-        return try await getDecoded(from: data, decode: router.decode)
+    final public func getResponse<RouterType: APIRouter>(from router: RouterType) async throws -> RouterType.Response where RouterType.AuthorizationType == AuthorizationType, RouterType.Response: Decodable, RouterType.HeaderResponse == Void {
+        let data = try await getData(for: router).0
+        return try getDecoded(from: data, decode: router.decode)
+    }
+
+    /**
+     Fetches and decodes data from the network using a given `URLRequest`.
+     
+     This method fetches the data from the network using the given `URLRequest`. It also decodes the data using the given `JSONDecoder` and reports the progress of the request to the `eventDelegate` if it is set.
+     
+     - Parameters:
+     - request: The `URLRequest` to use for fetching the data.
+     - decoder: The `JSONDecoder` to use for decoding the data.
+     - Returns: A touple containing decoded response object of decoded APIRouter's Response and APIRouter's HeaderResponse.
+     - Throws: An error if the network request or decoding fails.
+     */
+    @inlinable
+    final public func getResponse<RouterType: APIRouter>(from router: RouterType) async throws -> (RouterType.Response, RouterType.HeaderResponse) where RouterType.AuthorizationType == AuthorizationType, RouterType.Response: Decodable, RouterType.HeaderResponse: Decodable {
+        let (data, response) = try await getData(for: router)
+
+        return (try getDecoded(from: data, decode: router.decode), try getDecodedHeaderResponse(from: response, decode: router.decode))
     }
     
     /**
@@ -83,10 +102,33 @@ open class APIRouterService<AuthorizationType, NetworkingService: NetworkingServ
      - Note: `RouterType.AuthorizationType` must match the `AuthorizationType` of the `APIService` instance.
      */
     @inlinable
-    final public func getResponse<RouterType: APIRouter>(from router: RouterType) async throws -> Void where RouterType.AuthorizationType == AuthorizationType, RouterType.Response == Void {
+    final public func getResponse<RouterType: APIRouter>(from router: RouterType) async throws -> Void where RouterType.AuthorizationType == AuthorizationType, RouterType.Response == Void, RouterType.HeaderResponse == Void {
         try await getData(for: router)
     }
-    
+
+    /**
+     Fetches data from the network using a given `APIRouter`.
+     
+     This method fetches the data from the network using the given `APIRouter` and reports the progress of the request to the `eventDelegate` if it is set.
+     
+     - Parameter router: The `APIRouter` object representing the network request.
+     - Returns: Decoded APIRouter's HeaderResponse.
+     - Throws: An error if the network request fails.
+     - Note: `RouterType.AuthorizationType` must match the `AuthorizationType` of the `APIService` instance.
+     */
+    @inlinable
+    final public func getResponse<RouterType: APIRouter>(from router: RouterType) async throws -> RouterType.HeaderResponse where RouterType.AuthorizationType == AuthorizationType, RouterType.Response == Void, RouterType.HeaderResponse: Decodable {
+        let (_, response) = try await getData(for: router)
+        return try getDecodedHeaderResponse(from: response, decode: router.decode)
+    }
+
+    @inlinable
+    final public func getDecodedHeaderResponse<T: Decodable>(from response: URLResponse, decode: (T.Type, Data) throws -> T) throws -> T {
+        guard let httpResponse = response as? HTTPURLResponse else { throw ResponseValidationError.notHTTPURLResponse }
+        let serialization = try JSONSerialization.data(withJSONObject: httpResponse.allHeaderFields, options: [])
+
+        return try getDecoded(from: serialization, decode: decode)
+    }
     /**
      Fetches data from the network for the specified `APIRouter`.
      
@@ -99,7 +141,7 @@ open class APIRouterService<AuthorizationType, NetworkingService: NetworkingServ
      */
     @discardableResult
     @inlinable
-    open func getData<RouterType: APIRouter>(for router: RouterType) async throws -> Data where RouterType.AuthorizationType == AuthorizationType {
+    open func getData<RouterType: APIRouter>(for router: RouterType) async throws -> (Data, URLResponse) where RouterType.AuthorizationType == AuthorizationType {
         do {
             return try await getDataFromNetwork(for: try await getURLRequest(from: router))
         }  catch let error as ResponseValidationError where error == .invalidResponseCode {
@@ -171,21 +213,32 @@ public protocol APIServiceType: Sendable {
      This method fetches the data from the network using the given `URLRequest`. It also reports the progress of the request to the `eventDelegate` if it is set.
      
      - Parameter request: The `URLRequest` to use for fetching the data.
-     - Returns: The data fetched from the network.
+     - Returns: The data and response fetched from the network.
      - Throws: An error if the network request fails.
      */
-    func getDataFromNetwork(for request: URLRequest) async throws -> Data
+    func getDataFromNetwork(for request: URLRequest) async throws -> (Data, URLResponse)
+}
+
+extension APIServiceType {
+    @_disfavoredOverload
+    public func getDataFromNetwork(for request: URLRequest) async throws -> (Data) {
+        try await getDataFromNetwork(for: request).0
+    }
 }
 
 @available(macOS 12.0, *)
 public protocol APIRouterServiceType<AuthorizationType>: CleevioAPI.APIServiceType {
     associatedtype AuthorizationType
 
-    func getResponse<RouterType: APIRouter>(from router: RouterType) async throws -> RouterType.Response where RouterType.AuthorizationType == AuthorizationType, RouterType.Response: Decodable
+    func getResponse<RouterType: APIRouter>(from router: RouterType) async throws -> (RouterType.Response, RouterType.HeaderResponse) where RouterType.AuthorizationType == AuthorizationType, RouterType.Response: Decodable, RouterType.HeaderResponse: Decodable
 
-    func getResponse<RouterType: APIRouter>(from router: RouterType) async throws where RouterType.AuthorizationType == AuthorizationType, RouterType.Response == Void
+    func getResponse<RouterType: APIRouter>(from router: RouterType) async throws -> RouterType.Response where RouterType.AuthorizationType == AuthorizationType, RouterType.Response: Decodable, RouterType.HeaderResponse == Void
 
-    func getData<RouterType: APIRouter>(for router: RouterType) async throws -> Data where RouterType.AuthorizationType == AuthorizationType
+    func getResponse<RouterType: APIRouter>(from router: RouterType) async throws where RouterType.AuthorizationType == AuthorizationType, RouterType.Response == Void, RouterType.HeaderResponse == Void
+
+    func getResponse<RouterType: APIRouter>(from router: RouterType) async throws -> RouterType.HeaderResponse where RouterType.AuthorizationType == AuthorizationType, RouterType.Response == Void, RouterType.HeaderResponse: Decodable
+
+    func getData<RouterType: APIRouter>(for router: RouterType) async throws -> (Data, URLResponse) where RouterType.AuthorizationType == AuthorizationType
 
     func getURLRequest<RouterType: APIRouter>(from router: RouterType) async throws -> URLRequest where RouterType.AuthorizationType == AuthorizationType
 
@@ -207,7 +260,7 @@ open class APIService<NetworkingService: NetworkingServiceType>: @unchecked Send
         self.eventDelegate = eventDelegate
     }
 
-    final public func getDecoded<T: Decodable>(from data: Data, decode: (T.Type, Data) throws -> T) async throws -> T {
+    final public func getDecoded<T: Decodable>(from data: Data, decode: (T.Type, Data) throws -> T) throws -> T {
         let decoded: T = try decode(T.self, data)
         
         eventDelegate?.responseDecoded(decoded)
@@ -215,15 +268,15 @@ open class APIService<NetworkingService: NetworkingServiceType>: @unchecked Send
         return decoded
     }
 
-    final public func getDataFromNetwork(for request: URLRequest) async throws -> Data {
+    final public func getDataFromNetwork(for request: URLRequest) async throws -> (Data, URLResponse) {
         eventDelegate?.requestFired(request: request)
         
         let (data, response) = try await networkingService.data(for: request)
         eventDelegate?.responseReceived(from: request, data: data, response: response)
-        
+
         try checkResponse(from: data, with: response)
         
-        return data
+        return (data, response)
     }
     
     /**
