@@ -6,8 +6,8 @@
         "repositoryURL": "git@gitlab.cleevio.cz:cleevio-dev-ios/CleevioCore",
         "state": {
           "branch": null,
-          "revision": "c45dd25791395c90f260d7bc9a24f489c41802db",
-          "version": "2.1.3"
+          "revision": "593b5d1011ad0aa6963ea2d8bf2ddc5e59caa917",
+          "version": "2.1.7"
         }
       },
       {
@@ -15,8 +15,8 @@
         "repositoryURL": "git@gitlab.cleevio.cz:cleevio-dev-ios/CleevioStorage",
         "state": {
           "branch": null,
-          "revision": "d6ff7a5410c0ab5a7de8365cad7e40b6c422e386",
-          "version": "0.3.0-dev3"
+          "revision": "0fd34beefca537809ee6d72d69ccb0980a203dab",
+          "version": "0.4.2"
         }
       },
       {

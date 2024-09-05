@@ -15,7 +15,8 @@ let swiftSettings: [SwiftSetting] = [
 let package = Package(
     name: "CleevioAPI",
     platforms: [
-        .iOS(.v13)
+        .iOS(.v13),
+        .watchOS(.v8)
     ],
     products: [
         .library(
@@ -35,8 +36,8 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "git@gitlab.cleevio.cz:cleevio-dev-ios/CleevioCore", .upToNextMajor(from: .init(2, 0, 0))),
-        .package(url: "git@gitlab.cleevio.cz:cleevio-dev-ios/CleevioStorage", .upToNextMajor(from: "0.3.0-dev3"))
+        .package(url: "git@gitlab.cleevio.cz:cleevio-dev-ios/CleevioCore", .upToNextMajor(from: .init(2, 1, 7))),
+        .package(url: "git@gitlab.cleevio.cz:cleevio-dev-ios/CleevioStorage", .upToNextMajor(from: .init(0, 4, 2)))
     ],
     targets: [
         .target(
