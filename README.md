@@ -20,7 +20,7 @@ RouterBytes is a Swift package that provides Swift networking library based on `
 - Custom ```Path``` type for improved behavior of computing path consisting of multiple parts
 - Includes ```RouterBytesAuthentication``` for defining types interface for refreshing tokens
 - TokenManager for automatic refreshing of access token via APIRouter request with refresh token.
-- Firebase support for as token manager via [FirebaseCleevioAuth](https://github.com/cleevio/CleevioValidators)
+- Firebase support for as token manager via [CleevioFirebaseAuth](https://github.com/cleevio/CleevioFirebaseAuth)
 
 ## Usage/Examples
 
