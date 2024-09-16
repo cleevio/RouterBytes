@@ -7,7 +7,7 @@
 
 import Foundation
 import XCTest
-import CleevioAPI
+import RouterBytes
 
 class URLRequestcURLTests: XCTestCase {
     let url = URL(string: "https://www.example.com")!

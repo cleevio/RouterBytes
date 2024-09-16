@@ -6,8 +6,8 @@
 //
 
 import XCTest
-import CleevioAuthentication
-import CleevioAPI
+import RouterBytesAuthentication
+import RouterBytes
 
 fileprivate var dateProvider = DateProviderMock(date: Date())
 
@@ -180,7 +180,7 @@ final class TokenManagerTests: TokenManagerTestCase<AuthorizationType> {
 }
 
 @available(iOS 15.0, *)
-final class TokenManagerURLRequestProviderTests: TokenManagerTestCase<CleevioAPI.AuthorizationType> {
+final class TokenManagerURLRequestProviderTests: TokenManagerTestCase<RouterBytes.AuthorizationType> {
     func testRefreshOnError() async throws {
         try await refreshingHelper(signedInTokenExpiration: Date.distantFuture, forceRefresh: false) {
             let router = Self.mockRouter(type: .none)
@@ -279,7 +279,7 @@ struct RefreshTokenRouter: APIRouter {
         let expiresInSParameter: TimeInterval
         let accessParameter: String
 
-        func asAPIToken() -> CleevioAuthentication.BaseAPIToken {
+        func asAPIToken() -> RouterBytesAuthentication.BaseAPIToken {
             BaseAPIToken(
                 accessToken: accessParameter,
                 refreshToken: refreshParameter,
@@ -287,12 +287,12 @@ struct RefreshTokenRouter: APIRouter {
         }
     }
 
-    var defaultHeaders: CleevioAPI.Headers { [:] }
+    var defaultHeaders: RouterBytes.Headers { [:] }
     var hostname: URL { URL(string: "https://cleevio.com")! }
     var jsonDecoder: JSONDecoder = .init()
     var jsonEncoder: JSONEncoder = .init()
     var path: Path { "" }
-    var authType: CleevioAPI.AuthorizationType { .bearer(.refreshToken) }
+    var authType: RouterBytes.AuthorizationType { .bearer(.refreshToken) }
 
     func decode<T>(_ type: T.Type, from data: Data) throws -> T where T : Decodable {
         try jsonDecoder.decode(type, from: data)

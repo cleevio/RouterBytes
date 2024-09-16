@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import CleevioAPI
+import RouterBytes
 
 @available(macOS 10.15.0, *)
 public protocol APITokenAuthorizationType {
@@ -14,7 +14,7 @@ public protocol APITokenAuthorizationType {
 }
 
 @available(macOS 10.15.0, *)
-extension CleevioAPI.AuthorizationType: APITokenAuthorizationType {
+extension RouterBytes.AuthorizationType: APITokenAuthorizationType {
     public func authorizedRequest(urlRequest: URLRequest, with provider: some APITokenProvider) async throws -> URLRequest {
         switch self {
         case let .bearer(tokenType):

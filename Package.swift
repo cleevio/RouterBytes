@@ -13,18 +13,18 @@ let swiftSettings: [SwiftSetting] = [
 ]
 
 let package = Package(
-    name: "CleevioAPI",
+    name: "RouterBytes",
     platforms: [
         .iOS(.v13),
         .watchOS(.v8)
     ],
     products: [
         .library(
-            name: "CleevioAPI",
-            targets: ["CleevioAPI"]),
+            name: "RouterBytes",
+            targets: ["RouterBytes"]),
         .library(
-            name: "CleevioAuthentication",
-            targets: ["CleevioAuthentication"]
+            name: "RouterBytesAuthentication",
+            targets: ["RouterBytesAuthentication"]
         ),
         .library(
             name: "APIMultipart",
@@ -36,21 +36,21 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "git@gitlab.cleevio.cz:cleevio-dev-ios/CleevioCore", .upToNextMajor(from: .init(2, 1, 7))),
-        .package(url: "git@gitlab.cleevio.cz:cleevio-dev-ios/CleevioStorage", .upToNextMajor(from: .init(0, 4, 2)))
+        .package(url: "https://github.com/cleevio/CleevioCore.git", .upToNextMajor(from: .init(2, 1, 7))),
+        .package(url: "https://github.com/cleevio/CleevioStorage.git", .upToNextMajor(from: .init(0, 4, 2)))
     ],
     targets: [
         .target(
-            name: "CleevioAPI",
+            name: "RouterBytes",
             dependencies: [
                 .product(name: "CleevioCore", package: "CleevioCore")
             ],
             swiftSettings: swiftSettings
         ),
         .target(
-            name: "CleevioAuthentication",
+            name: "RouterBytesAuthentication",
             dependencies: [
-                "CleevioAPI",
+                "RouterBytes",
                 "CleevioStorage"
             ],
             swiftSettings: swiftSettings
@@ -58,22 +58,22 @@ let package = Package(
         .target(
             name: "APIServiceMock",
             dependencies: [
-                "CleevioAPI",
+                "RouterBytes",
             ],
             swiftSettings: swiftSettings
         ),
         .target(
             name: "APIMultipart",
             dependencies: [
-                "CleevioAPI"
+                "RouterBytes"
             ],
             swiftSettings: swiftSettings
         ),
         .testTarget(
-            name: "CleevioAPITests",
+            name: "RouterBytesTests",
             dependencies: [
-                "CleevioAPI",
-                "CleevioAuthentication"
+                "RouterBytes",
+                "RouterBytesAuthentication"
             ])
     ]
 )

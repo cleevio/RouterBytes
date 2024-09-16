@@ -6,14 +6,14 @@
 //
 
 import Foundation
-import CleevioAPI
+import RouterBytes
 
 /// A SettableAPITokenProvider that is based on some settable token storage and refresh provider that handles the refresh
 @available(macOS 10.15, *)
 public actor RefreshableTokenProvider<
     APIToken: CodableAPITokenType,
     TokenStorage: SettableAPITokenProvider<APIToken>,
-    RefreshProvider: CleevioAuthentication.RefreshTokenProvider<APIToken>
+    RefreshProvider: RouterBytesAuthentication.RefreshTokenProvider<APIToken>
 >: SettableAPITokenProvider {
     /// Initializes a new instance of `TokenManager`.
     ///

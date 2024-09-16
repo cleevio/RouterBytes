@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import CleevioAPI
+import RouterBytes
 import XCTest
 
 class DataJSONStringExtensionsTests: XCTestCase {

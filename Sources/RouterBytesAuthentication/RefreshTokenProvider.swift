@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import CleevioAPI
+import RouterBytes
 
 /// A protocol that defines functions that handle the refreshing logic for RefreshableTokenProvider
 public protocol RefreshTokenProvider<APIToken>: Sendable {
@@ -24,9 +24,9 @@ public protocol RefreshTokenProvider<APIToken>: Sendable {
 @available(macOS 10.15, *)
 public struct APIRouterRefreshTokenProvider<
     APIToken: RefreshableAPITokenType,
-    RefreshTokenAPIRouter: CleevioAuthentication.RefreshTokenAPIRouter,
+    RefreshTokenAPIRouter: RouterBytesAuthentication.RefreshTokenAPIRouter,
     APIService: APIServiceType & Sendable,
-    HostnameProvider: CleevioAPI.HostnameProvider,
+    HostnameProvider: RouterBytes.HostnameProvider,
     DateProvider: DateProviderType
 >: RefreshTokenProvider where RefreshTokenAPIRouter.APIToken == APIToken {
 
@@ -36,7 +36,7 @@ public struct APIRouterRefreshTokenProvider<
 
     public init(apiService: APIService,
                 hostnameProvider: HostnameProvider,
-                dateProvider: DateProvider = CleevioAuthentication.DateProvider(),
+                dateProvider: DateProvider = RouterBytesAuthentication.DateProvider(),
                 apiToken: APIToken.Type = APIToken.self,
                 refreshTokenAPIRouter: RefreshTokenAPIRouter.Type = RefreshTokenAPIRouter.self) {
         self.apiService = apiService

@@ -7,7 +7,7 @@
 
 import Foundation
 import CleevioStorage
-import CleevioAPI
+import RouterBytes
 
 /// A protocol that defines necessary interface an APIToken storage needs to implement to work with TokenManager
 public protocol APITokenProvider<APIToken>: Sendable {

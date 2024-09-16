@@ -6,7 +6,7 @@
 //
 
 import XCTest
-import CleevioAPI
+import RouterBytes
 
 @available(iOS 15.0, *)
 final class APIRouterServiceTests: XCTestCase {

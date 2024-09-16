@@ -38,7 +38,7 @@ public extension URLRequestProvider {
 }
 
 /// A basic URLRequest provider that creates URLRequests for a given API router.
-public struct BaseURLRequestProvider<AuthorizationType, HostnameProvider: CleevioAPI.HostnameProvider>: URLRequestProvider {
+public struct BaseURLRequestProvider<AuthorizationType, HostnameProvider: RouterBytes.HostnameProvider>: URLRequestProvider {
     /// The base URL for the API requests.
     public let hostnameProvider: HostnameProvider
 
@@ -61,7 +61,7 @@ public struct BaseURLRequestProvider<AuthorizationType, HostnameProvider: Cleevi
     }
 }
 
-extension BaseURLRequestProvider where HostnameProvider == CleevioAPI.BaseHostnameProvider {
+extension BaseURLRequestProvider where HostnameProvider == RouterBytes.BaseHostnameProvider {
     /// Initializes a new BaseURLRequestProvider with the given hostname as a BaseHostnameProvider.
     ///
     /// - Parameter hostname: The base URL for the API requests.
@@ -71,7 +71,7 @@ extension BaseURLRequestProvider where HostnameProvider == CleevioAPI.BaseHostna
     }
 }
 
-extension BaseURLRequestProvider: CleevioAPI.HostnameProvider {
+extension BaseURLRequestProvider: RouterBytes.HostnameProvider {
     /// Returns the hostname for the given API router.
     ///
     /// - Parameter router: The API router to get the hostname for.

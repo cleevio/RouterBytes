@@ -40,7 +40,7 @@ public typealias Headers = [String: String]
 public protocol APIRouter<RequestBody>: Sendable {
     associatedtype Response: Sendable
     associatedtype HeaderResponse: Sendable = Void
-    associatedtype AuthorizationType = CleevioAPI.AuthorizationType
+    associatedtype AuthorizationType = RouterBytes.AuthorizationType
     associatedtype RequestBody: Sendable = Void
 
     // Properties to be specified within the project APIRouter protocol

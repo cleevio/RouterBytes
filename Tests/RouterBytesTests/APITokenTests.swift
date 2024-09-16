@@ -6,7 +6,7 @@
 //
 
 import XCTest
-import CleevioAuthentication
+import RouterBytesAuthentication
 
 final class ApiTokenTests: XCTestCase {
     func testAccessTokenExpiresNow() {

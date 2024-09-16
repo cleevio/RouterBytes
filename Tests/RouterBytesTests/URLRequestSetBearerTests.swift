@@ -6,7 +6,7 @@
 //
 
 import XCTest
-import CleevioAPI
+import RouterBytes
 
 final class URLRequestSetBearerTests: XCTestCase {
     func testSetBearerToken() throws {

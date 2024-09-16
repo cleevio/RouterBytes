@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import CleevioAPI
+import RouterBytes
 
 /**
 A protocol for API routers that handle refreshing authentication tokens.

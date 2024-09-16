@@ -35,7 +35,7 @@ import Foundation
  ```
  */
 @available(macOS 12.0, *)
-open class APIRouterService<AuthorizationType, NetworkingService: NetworkingServiceType, URLRequestProvider>: APIService<NetworkingService>, APIRouterServiceType, Sendable where URLRequestProvider: CleevioAPI.URLRequestProvider<AuthorizationType> {
+open class APIRouterService<AuthorizationType, NetworkingService: NetworkingServiceType, URLRequestProvider>: APIService<NetworkingService>, APIRouterServiceType, Sendable where URLRequestProvider: RouterBytes.URLRequestProvider<AuthorizationType> {
     
     public final let urlRequestProvider: URLRequestProvider
     
@@ -227,7 +227,7 @@ extension APIServiceType {
 }
 
 @available(macOS 12.0, *)
-public protocol APIRouterServiceType<AuthorizationType>: CleevioAPI.APIServiceType {
+public protocol APIRouterServiceType<AuthorizationType>: RouterBytes.APIServiceType {
     associatedtype AuthorizationType
 
     func getResponse<RouterType: APIRouter>(from router: RouterType) async throws -> (RouterType.Response, RouterType.HeaderResponse) where RouterType.AuthorizationType == AuthorizationType, RouterType.Response: Decodable, RouterType.HeaderResponse: Decodable

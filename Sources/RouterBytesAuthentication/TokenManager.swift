@@ -5,7 +5,7 @@
 //  Created by Lukáš Valenta on 02.05.2023.
 //
 
-import CleevioAPI
+import RouterBytes
 import Foundation
 import CleevioStorage
 
@@ -17,8 +17,8 @@ public typealias TokenManager = TokenProviderWrappedURLRequestProvider
 @available(macOS 10.15.0, *)
 public struct TokenProviderWrappedURLRequestProvider<
     AuthorizationType: APITokenAuthorizationType,
-    HostnameProvider: CleevioAPI.HostnameProvider,
-    APITokenProvider: CleevioAuthentication.APITokenProvider
+    HostnameProvider: RouterBytes.HostnameProvider,
+    APITokenProvider: RouterBytesAuthentication.APITokenProvider
 >: URLRequestProvider {
     public let hostnameProvider: HostnameProvider
     public let tokenProvider: APITokenProvider
@@ -28,7 +28,7 @@ public struct TokenProviderWrappedURLRequestProvider<
         self.tokenProvider = tokenProvider
     }
 
-    public func getURLRequest<RouterType>(from router: RouterType) async throws -> URLRequest where RouterType : CleevioAPI.APIRouter, AuthorizationType == RouterType.AuthorizationType {
+    public func getURLRequest<RouterType>(from router: RouterType) async throws -> URLRequest where RouterType : RouterBytes.APIRouter, AuthorizationType == RouterType.AuthorizationType {
         var urlRequest: URLRequest { get throws { try router.asURLRequest(hostname: hostnameProvider.hostname(for: router)) } }
 
         return try await router.authType.authorizedRequest(urlRequest: try urlRequest, with: tokenProvider)

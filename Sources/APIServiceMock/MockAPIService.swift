@@ -6,10 +6,10 @@
 //
 
 import Foundation
-import CleevioAPI
+import RouterBytes
 
-public final class MockAPIService: CleevioAPI.APIRouterServiceType {
-    public typealias AuthorizationType = CleevioAPI.AuthorizationType
+public final class MockAPIService: RouterBytes.APIRouterServiceType {
+    public typealias AuthorizationType = RouterBytes.AuthorizationType
     
     private var responsesOnRouter: [ObjectIdentifier: (any APIRouter) async throws -> (Any)] = [:]
     private var urlRequstsOnUnAuthorizedRouter: [ObjectIdentifier: (any APIRouter) async throws -> (URLRequest)] = [:]
@@ -20,13 +20,13 @@ public final class MockAPIService: CleevioAPI.APIRouterServiceType {
 
     public init() { }
 
-    public func registerURLRequestResponseOnUnAuthorizedRouter<Router: CleevioAPI.APIRouter>(router: Router, response: @escaping (Router) -> (URLRequest)) {
+    public func registerURLRequestResponseOnUnAuthorizedRouter<Router: RouterBytes.APIRouter>(router: Router, response: @escaping (Router) -> (URLRequest)) {
         urlRequstsOnUnAuthorizedRouter[ObjectIdentifier(Router.self)] = { router in
             response(router as! Router)
         }
     }
 
-    public func registerDataProvider<Router: CleevioAPI.APIRouter>(
+    public func registerDataProvider<Router: RouterBytes.APIRouter>(
         for routerType: Router.Type,
         dataProvider: @escaping (Router) throws -> (Data, URLResponse)
     ) {
@@ -38,7 +38,7 @@ public final class MockAPIService: CleevioAPI.APIRouterServiceType {
         }
     }
     
-    public func registerURLRequestProvider<Router: CleevioAPI.APIRouter>(
+    public func registerURLRequestProvider<Router: RouterBytes.APIRouter>(
         for routerType: Router.Type,
         urlRequestProvider: @escaping (Router) throws -> URLRequest
     ) {
@@ -50,7 +50,7 @@ public final class MockAPIService: CleevioAPI.APIRouterServiceType {
         }
     }
     
-    public func registerDecodedProvider<Router: CleevioAPI.APIRouter, DecodedType>(
+    public func registerDecodedProvider<Router: RouterBytes.APIRouter, DecodedType>(
         for routerType: Router.Type,
         decodedProvider: @escaping (Router) throws -> DecodedType
     ) {
@@ -70,7 +70,7 @@ public final class MockAPIService: CleevioAPI.APIRouterServiceType {
     }
 
 
-    private func getResponseOnRouter<APIRouter: CleevioAPI.APIRouter>(router: APIRouter) async throws -> APIRouter.Response {
+    private func getResponseOnRouter<APIRouter: RouterBytes.APIRouter>(router: APIRouter) async throws -> APIRouter.Response {
         guard let response = responsesOnRouter[ObjectIdentifier(APIRouter.self)] else {
             fatalError("Response not registered")
         }
@@ -78,30 +78,30 @@ public final class MockAPIService: CleevioAPI.APIRouterServiceType {
         return try await response(router) as! APIRouter.Response
     }
     
-    public func getResponse<RouterType>(from router: RouterType) async throws -> RouterType.Response where RouterType : CleevioAPI.APIRouter, AuthorizationType == RouterType.AuthorizationType, RouterType.Response : Decodable, RouterType.HeaderResponse == Void {
+    public func getResponse<RouterType>(from router: RouterType) async throws -> RouterType.Response where RouterType : RouterBytes.APIRouter, AuthorizationType == RouterType.AuthorizationType, RouterType.Response : Decodable, RouterType.HeaderResponse == Void {
         try await getResponseOnRouter(router: router.self)
     }
 
-    public func getResponse<RouterType>(from router: RouterType) async throws -> (RouterType.Response, RouterType.HeaderResponse) where RouterType : CleevioAPI.APIRouter, AuthorizationType == RouterType.AuthorizationType, RouterType.Response : Decodable, RouterType.HeaderResponse: Decodable {
+    public func getResponse<RouterType>(from router: RouterType) async throws -> (RouterType.Response, RouterType.HeaderResponse) where RouterType : RouterBytes.APIRouter, AuthorizationType == RouterType.AuthorizationType, RouterType.Response : Decodable, RouterType.HeaderResponse: Decodable {
         fatalError("Needs to be implemented") // TODO:
     }
     
-    public func getResponse<RouterType>(from router: RouterType) async throws where RouterType : CleevioAPI.APIRouter, AuthorizationType == RouterType.AuthorizationType, RouterType.Response == Void, RouterType.HeaderResponse == Void {
+    public func getResponse<RouterType>(from router: RouterType) async throws where RouterType : RouterBytes.APIRouter, AuthorizationType == RouterType.AuthorizationType, RouterType.Response == Void, RouterType.HeaderResponse == Void {
         try await getResponseOnRouter(router: router)
     }
 
-    public func getResponse<RouterType>(from router: RouterType) async throws -> RouterType.HeaderResponse where RouterType : CleevioAPI.APIRouter, AuthorizationType == RouterType.AuthorizationType, RouterType.Response == Void, RouterType.HeaderResponse: Decodable {
+    public func getResponse<RouterType>(from router: RouterType) async throws -> RouterType.HeaderResponse where RouterType : RouterBytes.APIRouter, AuthorizationType == RouterType.AuthorizationType, RouterType.Response == Void, RouterType.HeaderResponse: Decodable {
         fatalError("Needs to be implemented") // TODO:
     }
     
-    public func getURLRequest<RouterType>(from router: RouterType) async throws -> URLRequest where RouterType : CleevioAPI.APIRouter, AuthorizationType == RouterType.AuthorizationType {
+    public func getURLRequest<RouterType>(from router: RouterType) async throws -> URLRequest where RouterType : RouterBytes.APIRouter, AuthorizationType == RouterType.AuthorizationType {
         guard let urlRequestProvider = urlRequestProviders[ObjectIdentifier(RouterType.self)] else {
             fatalError("DataProvider not registered")
         }
         return try await urlRequestProvider(router)
     }
     
-    public func getURLRequestOnUnAuthorizedError<RouterType>(from router: RouterType) async throws -> URLRequest where RouterType : CleevioAPI.APIRouter, AuthorizationType == RouterType.AuthorizationType {
+    public func getURLRequestOnUnAuthorizedError<RouterType>(from router: RouterType) async throws -> URLRequest where RouterType : RouterBytes.APIRouter, AuthorizationType == RouterType.AuthorizationType {
         guard let response = urlRequstsOnUnAuthorizedRouter[ObjectIdentifier(RouterType.self)] else {
             fatalError("Response not registered")
         }

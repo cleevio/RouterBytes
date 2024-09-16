@@ -6,7 +6,7 @@
 //
 
 import XCTest
-import CleevioAPI
+import RouterBytes
 
 final class PathTests: XCTestCase {
     func testEmptyStringInit() {
